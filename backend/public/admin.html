@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Billing Perpus — Monitoring PC</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<style>
+  :root{
+    --ink:#0f172a;
+    --ink-soft:#334155;
+    --muted:#64748b;
+    --bg:#eef1f6;
+    --surface:#ffffff;
+    --line:#e2e8f0;
+    --accent:#0ea5e9;
+    --accent-ink:#075985;
+    --ok:#16a34a;
+    --ok-bg:#e8f7ee;
+    --ok-line:#bfe8cf;
+    --busy:#dc2626;
+    --busy-bg:#fdeaea;
+    --busy-line:#f5c2c2;
+    --maint:#7c3aed;
+    --maint-bg:#f1ebfd;
+    --maint-line:#dcc9f7;
+    --pause:#c2740a;
+    --pause-bg:#fdf1dc;
+    --pause-line:#f2d69d;
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  .font-mono{ font-family:'JetBrains Mono', 'Segoe UI Mono', monospace; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:264px;
+    background:var(--ink);
+    color:#fff;
+    min-height:100vh;
+    position:fixed;
+    top:0; left:0;
+    display:flex;
+    flex-direction:column;
+    z-index:1030;
+    transition:transform .25s ease;
+  }
+  .sidebar .brand{
+    padding:24px 22px 18px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .sidebar .brand-mark{
+    width:38px; height:38px;
+    border-radius:10px;
+    background:linear-gradient(155deg,var(--accent),#0369a1);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.15rem;
+    flex-shrink:0;
+  }
+  .sidebar .brand-text{ line-height:1.2; }
+  .sidebar .brand-text .name{ font-weight:800; font-size:1.02rem; letter-spacing:.2px; }
+  .sidebar .brand-text .sub{ font-size:.72rem; color:#94a3b8; }
+  .sidebar-nav{ padding:16px 12px; flex:1; }
+  .sidebar-nav .nav-link{
+    color:#94a3b8;
+    padding:11px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-decoration:none;
+    border-radius:10px;
+    font-weight:600;
+    font-size:.92rem;
+    margin-bottom:4px;
+    transition:background .15s ease, color .15s ease;
+  }
+  .sidebar-nav .nav-link i{ font-size:1.05rem; width:20px; text-align:center; }
+  .sidebar-nav .nav-link:hover{ color:#fff; background:rgba(255,255,255,.06); }
+  .sidebar-nav .nav-link.active{ color:#fff; background:rgba(14,165,233,.16); }
+  .sidebar-nav .nav-link.active i{ color:var(--accent); }
+  .sidebar-nav .nav-link .badge{ margin-left:auto; }
+  .sidebar-foot{
+    padding:14px 22px 20px;
+    border-top:1px solid rgba(255,255,255,.08);
+    font-size:.74rem;
+    color:#64748b;
+  }
+  .sidebar-close{ display:none; }
+
+  /* ---------- Topbar (mobile) ---------- */
+  .topbar-mobile{
+    display:none;
+    position:sticky; top:0; z-index:1020;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    padding:12px 16px;
+    align-items:center;
+    gap:12px;
+  }
+
+  /* ---------- Main ---------- */
+  .main-content{
+    margin-left:264px;
+    padding:30px 32px 60px;
+    width:calc(100% - 264px);
+  }
+  .page-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+  }
+  .page-head h3{ font-weight:800; letter-spacing:-.3px; margin-bottom:2px; }
+  .page-head .lead-note{ color:var(--muted); font-size:.9rem; margin:0; }
+
+  .surface-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:0 1px 2px rgba(15,23,42,.04);
+  }
+  .form-control, .form-select{
+    border-radius:9px;
+    border-color:var(--line);
+  }
+  .form-control:focus, .form-select:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 .2rem rgba(14,165,233,.15);
+  }
+  .btn{ border-radius:9px; font-weight:600; font-size:.88rem; }
+  .btn-primary{ background:var(--accent); border-color:var(--accent); }
+  .btn-primary:hover{ background:var(--accent-ink); border-color:var(--accent-ink); }
+  .section-title{
+    font-weight:700; font-size:1rem; margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-title i{ color:var(--accent); }
+  .field-hint{ font-size:.76rem; color:var(--muted); margin-top:4px; }
+
+  /* ---------- Stat row ---------- */
+  .stat-card{
+    border-radius:var(--radius);
+    padding:16px 18px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    border:1px solid var(--line);
+    background:var(--surface);
+  }
+  .stat-icon{
+    width:44px; height:44px;
+    border-radius:11px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.2rem;
+    flex-shrink:0;
+  }
+  .stat-num{ font-size:1.5rem; font-weight:800; line-height:1; }
+  .stat-label{ font-size:.78rem; color:var(--muted); font-weight:600; }
+
+  /* ---------- PC Cards ---------- */
+  .pc-card{
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    background:var(--surface);
+    overflow:hidden;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+  }
+  .pc-card .pc-head{
+    padding:16px 18px 0;
+  }
+  .pc-card .pc-body{
+    padding:14px 18px 18px;
+    display:flex;
+    flex-direction:column;
+    flex:1;
+  }
+  .status-strip{ height:5px; width:100%; }
+  .status-strip.available{ background:var(--ok); }
+  .status-strip.inuse{ background:var(--busy); }
+  .status-strip.maintenance{ background:var(--maint); }
+  .status-strip.paused{ background:var(--pause); }
+
+  .status-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px;
+    border-radius:99px;
+    font-size:.72rem;
+    font-weight:700;
+  }
+  .status-pill.available{ background:var(--ok-bg); color:var(--ok); }
+  .status-pill.inuse{ background:var(--busy-bg); color:var(--busy); }
+  .status-pill.maintenance{ background:var(--maint-bg); color:var(--maint); }
+  .status-pill.paused{ background:var(--pause-bg); color:var(--pause); }
+
+  .pc-info-box{
+    background:#f8fafc;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    margin:12px 0;
+    font-size:.83rem;
+  }
+  .pc-info-item{
+    display:flex; justify-content:space-between;
+    padding:3px 0;
+    color:var(--ink-soft);
+  }
+  .pc-info-item strong{ color:var(--ink); font-weight:600; }
+  .pc-info-item .val{ font-weight:700; }
+
+  .timer-display{
+    text-align:center;
+    font-size:1.55rem;
+    font-weight:700;
+    letter-spacing:1px;
+    margin:6px 0 14px;
+  }
+  .timer-display.is-idle{ color:#cbd5e1; }
+  .timer-display.is-running{ color:var(--ink); }
+
+  .card-action-bar{
+    display:flex; flex-wrap:wrap; gap:6px;
+    margin-top:auto;
+  }
+  .card-action-bar .btn{
+    flex:1 1 auto;
+    padding:6px 8px;
+    font-size:.78rem;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+    white-space:nowrap;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding:56px 20px;
+    color:var(--muted);
+  }
+  .empty-state i{ font-size:2.2rem; color:#cbd5e1; margin-bottom:10px; display:block; }
+  .empty-state p{ margin-bottom:0; font-size:.92rem; }
+
+  table thead th{
+    font-size:.74rem;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    color:var(--muted);
+    font-weight:700;
+    border-bottom-width:1px;
+  }
+  table td{ vertical-align:middle; font-size:.88rem; }
+
+  .badge-soft-danger{ background:var(--busy-bg); color:var(--busy); font-weight:700; }
+  .badge-soft-success{ background:var(--ok-bg); color:var(--ok); font-weight:700; }
+  .badge-soft-neutral{ background:#e2e8f0; color:var(--ink-soft); font-weight:700; }
+
+  .modal-content{ border-radius:16px; border:none; }
+  .modal-header{ border-bottom:1px solid var(--line); }
+  .modal-footer{ border-top:1px solid var(--line); }
+
+  .pagination .page-link{
+    border-radius:8px !important;
+    margin:0 2px;
+    border-color:var(--line);
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .pagination .page-item.active .page-link{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+
+  @media (max-width: 991.98px){
+    .sidebar{ transform:translateX(-100%); box-shadow:0 0 40px rgba(0,0,0,.25); }
+    .sidebar.open{ transform:translateX(0); }
+    .sidebar-close{ display:inline-flex; margin-left:auto; }
+    .main-content{ margin-left:0; width:100%; padding:22px 16px 50px; }
+    .topbar-mobile{ display:flex; }
+  }
+  .sidebar-backdrop{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(15,23,42,.45);
+    z-index:1025;
+  }
+  .sidebar-backdrop.show{ display:block; }
+</style>
+</head>
+<body>
+
+<!-- Mobile topbar -->
+<div class="topbar-mobile">
+  <button class="btn btn-outline-secondary btn-sm" onclick="toggleSidebar(true)">
+    <i class="bi bi-list"></i>
+  </button>
+  <span class="fw-bold">Billing Perpus</span>
+</div>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-mark"><i class="bi bi-display"></i></div>
+    <div class="brand-text">
+      <div class="name">Billing Perpus</div>
+      <div class="sub">Monitoring &amp; kuota PC</div>
+    </div>
+    <button class="btn btn-sm btn-outline-light border-0 sidebar-close ms-auto" onclick="toggleSidebar(false)">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+  <div class="sidebar-nav">
+    <a href="#" class="nav-link active" onclick="switchPage('monitoring', this); return false;">
+      <i class="bi bi-grid-1x2-fill"></i> Monitoring PC
+    </a>
+    <a href="#" class="nav-link" onclick="switchPage('queue', this); loadQueue(); return false;">
+      <i class="bi bi-hourglass-split"></i> Antrean PC
+      <span id="queueBadge" class="badge rounded-pill bg-primary">0</span>
+    </a>
+    <a href="#" class="nav-link" onclick="switchPage('crud-user', this); loadDailyActivity(); return false;">
+      <i class="bi bi-people-fill"></i> Cek &amp; CRUD User
+    </a>
+    <a href="#" class="nav-link" onclick="switchPage('history', this); loadSessionHistory(); return false;">
+      <i class="bi bi-clock-history"></i> Riwayat Sesi
+    </a>
+    <a href="#" class="nav-link" onclick="switchPage('settings', this); return false;">
+      <i class="bi bi-gear-fill"></i> Pengaturan
+    </a>
+  </div>
+  <div class="sidebar-foot">
+    <i class="bi bi-shield-check me-1"></i> Maks. 2x pakai / user / hari
+  </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-content">
+
+  <div class="page-head">
+    <div>
+      <h3 id="pageTitle">Dashboard Monitoring PC</h3>
+      <p class="lead-note" id="pageSubtitle">Pantau status unit, sesi berjalan, dan sisa saldo waktu secara real-time.</p>
+    </div>
+    <button class="btn btn-outline-danger btn-sm" id="resetQuotaBtn" onclick="resetAllDailyQuotas()">
+      <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Semua Kuota Hari Ini
+    </button>
+  </div>
+
+  <!-- PAGE 1: MONITORING PC -->
+  <div id="page-monitoring" class="page-section">
+
+    <div class="row g-3 mb-4" id="statRow">
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e2e8f0;color:var(--ink-soft)"><i class="bi bi-pc-display-horizontal"></i></div>
+          <div><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Unit</div></div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--ok-bg);color:var(--ok)"><i class="bi bi-check-circle-fill"></i></div>
+          <div><div class="stat-num" id="statAvailable">0</div><div class="stat-label">Kosong</div></div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--busy-bg);color:var(--busy)"><i class="bi bi-person-fill"></i></div>
+          <div><div class="stat-num" id="statInUse">0</div><div class="stat-label">Dipakai</div></div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--pause-bg);color:var(--pause)"><i class="bi bi-pause-circle-fill"></i></div>
+          <div><div class="stat-num" id="statPaused">0</div><div class="stat-label">Jeda / Maintenance</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="surface-card p-3 p-md-4 mb-4">
+      <div class="section-title"><i class="bi bi-plus-circle"></i> Tambah Unit PC Baru</div>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-tag"></i></span>
+            <input type="text" id="inputCode" class="form-control" placeholder="Kode PC (misal: PC-05)">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-geo-alt"></i></span>
+            <input type="text" id="inputLocation" class="form-control" placeholder="Lokasi (misal: Lantai 7)">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <button class="btn btn-primary w-100" onclick="addPC()">
+            <i class="bi bi-plus-lg me-1"></i> Tambah PC
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" id="pcGrid"></div>
+    <div id="pcPagination" class="d-flex justify-content-center mt-3"></div>
+  </div>
+
+  <!-- PAGE 2: ANTREAN PC -->
+  <div id="page-queue" class="page-section" style="display: none;">
+    <div class="surface-card p-3 p-md-4 mb-4">
+      <div class="section-title"><i class="bi bi-person-plus"></i> Tambah ke Antrean</div>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <input type="text" id="queueUserName" class="form-control" placeholder="Masukkan Pengguna">
+        </div>
+        <div class="col-md-4">
+          <select id="queuePurpose" class="form-select" onchange="handleQueuePurposeChange(this.value)">
+            <option value="kawan perpus">kawan perpus</option>
+            <option value="kawan perpus nambah">kawan perpus nambah</option>
+            <option value="tambah 5 menit">tambah 5 menit</option>
+          </select>
+        </div>
+        <div class="col-md-2" id="queueExtraTimeCol" style="display: none;">
+          <select id="queueExtraMinutes" class="form-select">
+            <option value="30">+30 Menit</option>
+            <option value="60">+1 Jam</option>
+            <option value="120">+2 Jam</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-success w-100" onclick="addQueue()">
+            <i class="bi bi-hourglass-split me-1"></i> Antre
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="surface-card p-3 p-md-4">
+      <div class="section-title"><i class="bi bi-list-ol"></i> Daftar Antrean</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama</th>
+              <th>Jenis Pengguna</th>
+              <th>Waktu Masuk</th>
+              <th class="text-end">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="queueTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: CEK & CRUD USER -->
+  <div id="page-crud-user" class="page-section" style="display: none;">
+    <div class="surface-card p-3 p-md-4 mb-4">
+      <div class="section-title"><i class="bi bi-sliders"></i> CRUD / Reset Kuota Harian User <span class="text-muted fw-normal">(Max 2x Pakai/Hari)</span></div>
+      <p class="text-muted small mb-3">
+        <i class="bi bi-lightbulb me-1"></i>
+        Jika user sudah 2x pakai dan ingin pakai lagi, gunakan tombol <strong>"Reset (Izinkan Lagi)"</strong> di tabel bawah, atau sesuaikan manual lewat form ini.
+      </p>
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input type="text" id="adminOldName" class="form-control" placeholder="Nama Lama (opsional untuk rename)">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="adminNewName" class="form-control" placeholder="Nama Target/Baru">
+        </div>
+        <div class="col-md-2">
+          <input type="number" id="adminNewCount" class="form-control" placeholder="Jumlah Sesi (0, 1, 2)">
+        </div>
+        <div class="col-md-4">
+          <button class="btn btn-warning w-100 fw-semibold text-dark" onclick="adminCrudQuota()">
+            <i class="bi bi-save me-1"></i> Simpan / Sesuaikan Kuota
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="surface-card p-3 p-md-4">
+      <div class="section-title"><i class="bi bi-bar-chart"></i> Ringkasan Aktivitas Hari Ini</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Total Pakai Hari Ini</th>
+              <th>Status Kuota</th>
+              <th class="text-end">Aksi Cepat Admin</th>
+            </tr>
+          </thead>
+          <tbody id="dailyActivityTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 4: RIWAYAT SESI -->
+  <div id="page-history" class="page-section" style="display: none;">
+    <div class="surface-card p-3 p-md-4">
+      <div class="section-title"><i class="bi bi-journal-text"></i> 100 Histori Sesi Terakhir</div>
+      <p class="text-muted small mb-3">
+        <i class="bi bi-info-circle me-1"></i>
+        Setiap sesi (termasuk yang dipindah PC) tetap satu baris riwayat dari mulai sampai selesai — kolom
+        <strong>Status</strong> menandai apakah sesi tersebut masih berjalan atau sudah selesai.
+      </p>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Kode PC</th>
+              <th>Username</th>
+              <th>Jenis Pengguna</th>
+              <th>Waktu Mulai</th>
+              <th>Waktu Selesai</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="sessionHistoryBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 5: PENGATURAN -->
+  <div id="page-settings" class="page-section" style="display: none;">
+    <div class="surface-card p-3 p-md-4">
+      <div class="section-title"><i class="bi bi-gear"></i> Pengaturan Sistem Billing</div>
+      <p class="text-muted mb-0">
+        Nama pengguna dibatasi maksimal <strong>2 kali pakai per hari</strong>. Jika sudah mencapai 2 kali,
+        sistem otomatis menolak aktivasi sesi baru dan baru bisa dipakai kembali di esok hari. Memindahkan
+        pengguna ke PC lain (fitur Pindah PC) <strong>tidak dihitung</strong> sebagai sesi baru.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Start Session -->
+<div class="modal fade" id="startModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-play-circle me-2 text-primary"></i>Mulai Sesi PC</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modalPcId">
+        <div class="mb-3">
+          <label class="form-label">Masukkan Pengguna</label>
+          <input type="text" id="modalUserName" class="form-control" placeholder="Nama pengguna...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Jenis Pengguna</label>
+          <select id="modalPurpose" class="form-select" onchange="handleModalPurposeChange(this.value)">
+            <option value="kawan perpus">kawan perpus</option>
+            <option value="kawan perpus nambah">kawan perpus nambah</option>
+            <option value="tambah 5 menit">tambah 5 menit</option>
+          </select>
+        </div>
+        <div class="mb-3" id="modalExtraTimeContainer" style="display: none;">
+          <label class="form-label text-primary fw-semibold">Pilih Tambahan Waktu (Kawan Perpus Nambah)</label>
+          <select id="modalExtraMinutes" class="form-select border-primary">
+            <option value="30">+30 Menit</option>
+            <option value="60">+1 Jam</option>
+            <option value="120">+2 Jam</option>
+          </select>
+        </div>
+        <div class="mb-1">
+          <label class="form-label">Durasi Custom (Menit)</label>
+          <input type="number" id="modalCustomDuration" class="form-control" placeholder="Kosongkan untuk pakai durasi otomatis" min="1">
+          <div class="field-hint">Isi kalau admin ingin menentukan durasi sendiri — kalau diisi, ini akan dipakai dan menggantikan durasi otomatis dari Jenis Pengguna di atas.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-success" onclick="submitStartSession()">
+          <i class="bi bi-play-fill me-1"></i> Mulai
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tambah Waktu Langsung -->
+<div class="modal fade" id="extendModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="extendModalTitle"><i class="bi bi-clock-history me-2 text-primary"></i>Tambah / Perpanjang Waktu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="extendPcId">
+        <div class="mb-1">
+          <label class="form-label">Pilih Opsi Tambahan Waktu</label>
+          <select id="extendMinutesOption" class="form-select" onchange="handleExtendOptionChange(this.value)">
+            <option value="30">+30 Menit</option>
+            <option value="60">+1 Jam (60 Menit)</option>
+            <option value="120">+2 Jam (120 Menit)</option>
+            <option value="5">+5 Menit (Cepat)</option>
+            <option value="custom">Durasi Custom...</option>
+          </select>
+        </div>
+        <div class="mt-2" id="extendCustomContainer" style="display:none;">
+          <label class="form-label">Menit Custom</label>
+          <input type="number" id="extendCustomMinutes" class="form-control" placeholder="Masukkan jumlah menit" min="1">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="submitExtendActiveSession()">
+          <i class="bi bi-plus-lg me-1"></i> Tambah Waktu ke Saldo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pindah PC -->
+<div class="modal fade" id="moveModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="moveModalTitle"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Pindah PC</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="moveFromPcId">
+        <div class="mb-1">
+          <label class="form-label">Pindahkan ke PC</label>
+          <select id="moveTargetPc" class="form-select"></select>
+          <div class="field-hint">Hanya PC berstatus Kosong yang bisa dipilih. Nama pengguna, sisa waktu, dan riwayat sesi akan ikut berpindah.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="submitMoveSession()">
+          <i class="bi bi-arrow-left-right me-1"></i> Pindahkan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Chat User -->
+<div class="modal fade" id="chatModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="chatModalTitle"><i class="bi bi-chat-dots me-2 text-primary"></i>Peringatan / Chat User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="chatPcId">
+        <div class="mb-1">
+          <label class="form-label">Pesan Peringatan Admin ke Billing Pengguna</label>
+          <textarea id="chatMessageText" class="form-control" rows="3" placeholder="Tulis peringatan untuk pengguna..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary" onclick="sendChatWarning()">
+          <i class="bi bi-send me-1"></i> Kirim ke Web Billing
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const socket = io('/', { transports: ['websocket', 'polling'] });
+  const startModal = new bootstrap.Modal(document.getElementById('startModal'));
+  const extendModal = new bootstrap.Modal(document.getElementById('extendModal'));
+  const chatModal = new bootstrap.Modal(document.getElementById('chatModal'));
+  const moveModal = new bootstrap.Modal(document.getElementById('moveModal'));
+
+  // Cache state lokal agar transisi DOM halus tanpa kedip berlebihan
+  let lastRenderedPCMap = {};
+
+  // ---------- Pagination state ----------
+  const PC_PAGE_SIZE = 8;
+  let pcCurrentPage = 1;
+  let latestPCsData = [];
+
+  socket.on('connect', () => {
+    console.log('Socket terhubung, ID:', socket.id);
+  });
+
+  socket.on('session_error', (data) => alert('Error: ' + data.message));
+
+  socket.on('init_pcs', (data) => { renderPCsSmart(data || []); });
+  socket.on('update_pcs', (data) => { renderPCsSmart(data || []); });
+  socket.on('broadcast_queue', renderQueue);
+
+  // ---------- Sidebar (mobile) ----------
+  function toggleSidebar(open) {
+    document.getElementById('sidebar').classList.toggle('open', open);
+    document.getElementById('sidebarBackdrop').classList.toggle('show', open);
+  }
+
+  function switchPage(pageId, el) {
+    document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
+    document.getElementById('page-' + pageId).style.display = 'block';
+    document.querySelectorAll('.sidebar-nav .nav-link').forEach(l => l.classList.remove('active'));
+    el.classList.add('active');
+    toggleSidebar(false);
+
+    const titles = {
+      'monitoring': ['Dashboard Monitoring PC', 'Pantau status unit, sesi berjalan, dan sisa saldo waktu secara real-time.'],
+      'queue': ['Antrean PC', 'Kelola pengguna yang menunggu giliran unit PC.'],
+      'crud-user': ['Cek & CRUD User', 'Periksa dan sesuaikan kuota pemakaian harian tiap pengguna.'],
+      'history': ['Riwayat Sesi', '100 sesi terakhir yang tercatat di sistem.'],
+      'settings': ['Pengaturan', 'Aturan dan batas pemakaian sistem billing.']
+    };
+    const t = titles[pageId] || ['Dashboard', ''];
+    document.getElementById('pageTitle').innerText = t[0];
+    document.getElementById('pageSubtitle').innerText = t[1];
+    document.getElementById('resetQuotaBtn').style.display = (pageId === 'monitoring') ? 'inline-flex' : 'none';
+  }
+
+  function addPC() {
+    const code = document.getElementById('inputCode').value.trim();
+    const location = document.getElementById('inputLocation').value.trim();
+    if (!code) return alert('Kode PC wajib diisi');
+    socket.emit('add_pc', { code, location });
+    document.getElementById('inputCode').value = '';
+    document.getElementById('inputLocation').value = '';
+  }
+
+  function deletePC(pcId) {
+    if (confirm('Hapus PC ini?')) socket.emit('delete_pc', { pcId });
+  }
+
+  function handleModalPurposeChange(val) {
+    const extraContainer = document.getElementById('modalExtraTimeContainer');
+    extraContainer.style.display = (val === 'kawan perpus nambah') ? 'block' : 'none';
+  }
+
+  function openStartModal(pcId) {
+    document.getElementById('modalPcId').value = pcId;
+    document.getElementById('modalUserName').value = '';
+    document.getElementById('modalPurpose').value = 'kawan perpus';
+    document.getElementById('modalExtraTimeContainer').style.display = 'none';
+    document.getElementById('modalCustomDuration').value = '';
+    startModal.show();
+  }
+
+  function submitStartSession() {
+    const pcId = document.getElementById('modalPcId').value;
+    const userName = document.getElementById('modalUserName').value.trim();
+    const purpose = document.getElementById('modalPurpose').value;
+
+    if (!userName) return alert('Masukkan Pengguna wajib diisi');
+
+    // Durasi custom (manual) menang atas durasi otomatis dari Jenis Pengguna, jika diisi
+    const customDuration = parseInt(document.getElementById('modalCustomDuration').value);
+    let durationMinutes;
+    if (customDuration && customDuration > 0) {
+      durationMinutes = customDuration;
+    } else {
+      durationMinutes = 120;
+      if (purpose === 'kawan perpus nambah') {
+        durationMinutes = parseInt(document.getElementById('modalExtraMinutes').value || 30);
+      } else if (purpose === 'tambah 5 menit') {
+        durationMinutes = 5;
+      }
+    }
+
+    socket.emit('start_session', { pcId, userName, purpose, durationMinutes }, (res) => {
+      if (res && res.error) {
+        alert('Gagal: ' + (res.message || res.error));
+      } else if (res && res.success) {
+        startModal.hide();
+      }
+    });
+  }
+
+  function openExtendModal(pcId, userName) {
+    document.getElementById('extendPcId').value = pcId;
+    document.getElementById('extendModalTitle').innerHTML = `<i class="bi bi-clock-history me-2 text-primary"></i>Tambah Waktu: ${userName || 'PC'}`;
+    document.getElementById('extendMinutesOption').value = '30';
+    document.getElementById('extendCustomContainer').style.display = 'none';
+    document.getElementById('extendCustomMinutes').value = '';
+    extendModal.show();
+  }
+
+  function handleExtendOptionChange(val) {
+    document.getElementById('extendCustomContainer').style.display = (val === 'custom') ? 'block' : 'none';
+  }
+
+  function submitExtendActiveSession() {
+    const pcId = document.getElementById('extendPcId').value;
+    const optionVal = document.getElementById('extendMinutesOption').value;
+    let addMinutes;
+    if (optionVal === 'custom') {
+      addMinutes = parseInt(document.getElementById('extendCustomMinutes').value || 0);
+      if (!addMinutes || addMinutes <= 0) return alert('Masukkan durasi custom yang valid');
+    } else {
+      addMinutes = parseInt(optionVal || 30);
+    }
+    socket.emit('extend_time', { pcId, addMinutes }, (res) => {
+      alert(res?.message || 'Waktu berhasil ditambahkan ke saldo berjalan');
+      extendModal.hide();
+    });
+  }
+
+  function reduceTime(pcId, reduceMinutes) {
+    const reason = prompt(`Kurangi ${reduceMinutes} menit karena alasan apa? (mengganggu kenyamanan, dll):`, 'Mengganggu kenyamanan');
+    if (reason !== null) {
+      socket.emit('reduce_time', { pcId, reduceMinutes, reason }, (res) => {
+        if (res && res.error) alert('Gagal mengurangi waktu: ' + res.message);
+      });
+    }
+  }
+
+  function endSession(pcId) {
+    if (confirm('Akhiri sesi ini?')) socket.emit('end_session', { pcId });
+  }
+
+  function pauseSession(pcId) {
+    socket.emit('pause_session', { pcId }, (res) => {
+      if (res && res.error) alert('Gagal Jeda: ' + res.message);
+    });
+  }
+
+  function resumeSession(pcId) {
+    socket.emit('resume_session', { pcId }, (res) => {
+      if (res && res.error) alert('Gagal Lanjut: ' + res.message);
+    });
+  }
+
+  function setMaintenance(pcId, status) { socket.emit('set_pc_maintenance', { pcId, status }); }
+
+  // ---------- Pindah PC ----------
+  function openMoveModal(pcId, userName) {
+    document.getElementById('moveFromPcId').value = pcId;
+    document.getElementById('moveModalTitle').innerHTML = `<i class="bi bi-arrow-left-right me-2 text-primary"></i>Pindah PC: ${userName || 'Pengguna'}`;
+
+    const select = document.getElementById('moveTargetPc');
+    const availablePCs = latestPCsData.filter(p => p.status === 'available' && String(p.id) !== String(pcId));
+    if (availablePCs.length === 0) {
+      select.innerHTML = `<option value="">Tidak ada PC kosong saat ini</option>`;
+    } else {
+      select.innerHTML = availablePCs.map(p => `<option value="${p.id}">${p.code}${p.location ? ' — ' + p.location : ''}</option>`).join('');
+    }
+    moveModal.show();
+  }
+
+  function submitMoveSession() {
+    const fromPcId = document.getElementById('moveFromPcId').value;
+    const toPcId = document.getElementById('moveTargetPc').value;
+    if (!toPcId) return alert('Pilih PC tujuan terlebih dahulu');
+    socket.emit('move_session', { fromPcId, toPcId }, (res) => {
+      if (res && res.error) {
+        alert('Gagal memindahkan: ' + res.message);
+      } else {
+        alert(res?.message || 'Berhasil dipindahkan');
+        moveModal.hide();
+      }
+    });
+  }
+
+  function openChatModal(pcId, userName) {
+    document.getElementById('chatPcId').value = pcId;
+    document.getElementById('chatModalTitle').innerHTML = `<i class="bi bi-chat-dots me-2 text-primary"></i>Chat / Peringatan: ${userName || 'Pengguna'}`;
+    document.getElementById('chatMessageText').value = '';
+    chatModal.show();
+  }
+
+  function sendChatWarning() {
+    const pcId = document.getElementById('chatPcId').value;
+    const message = document.getElementById('chatMessageText').value.trim();
+    if (!message) return alert('Pesan tidak boleh kosong');
+    socket.emit('admin_send_chat', { pcId, message }, (res) => {
+      alert(res?.message || 'Pesan dikirim ke billing pengguna');
+      chatModal.hide();
+    });
+  }
+
+  // ---------- PC Grid rendering (dengan paginasi) ----------
+  function renderPCsSmart(pcs) {
+    if (!Array.isArray(pcs)) return;
+    latestPCsData = pcs;
+    updateStatSummary(pcs);
+    renderPCsPage();
+  }
+
+  function renderPCsPage() {
+    const grid = document.getElementById('pcGrid');
+    if (!grid) return;
+    const pcs = latestPCsData;
+
+    if (pcs.length === 0) {
+      grid.innerHTML = `
+        <div class="col-12">
+          <div class="surface-card empty-state">
+            <i class="bi bi-pc-display-horizontal"></i>
+            <p>Belum ada unit PC. Tambahkan lewat form di atas.</p>
+          </div>
+        </div>`;
+      lastRenderedPCMap = {};
+      renderPagination(0, 1);
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(pcs.length / PC_PAGE_SIZE));
+    if (pcCurrentPage > totalPages) pcCurrentPage = totalPages;
+    if (pcCurrentPage < 1) pcCurrentPage = 1;
+
+    const startIdx = (pcCurrentPage - 1) * PC_PAGE_SIZE;
+    const pageItems = pcs.slice(startIdx, startIdx + PC_PAGE_SIZE);
+
+    const newMap = {};
+    pageItems.forEach(p => { newMap[p.id] = p; });
+    const oldKeys = Object.keys(lastRenderedPCMap);
+    const newKeys = Object.keys(newMap);
+    const isStructureChanged = oldKeys.length !== newKeys.length || oldKeys.some(k => !newMap[k]);
+
+    if (isStructureChanged) {
+      grid.innerHTML = '';
+      pageItems.forEach(pc => grid.appendChild(createPCCardElement(pc)));
+    } else {
+      pageItems.forEach(pc => {
+        const existingCardCol = document.getElementById(`pc-col-${pc.id}`);
+        if (existingCardCol) {
+          updatePCCardElement(existingCardCol, pc);
+        } else {
+          grid.appendChild(createPCCardElement(pc));
+        }
+      });
+    }
+    lastRenderedPCMap = newMap;
+    renderPagination(pcs.length, totalPages);
+  }
+
+  function goToPCPage(page) {
+    pcCurrentPage = page;
+    renderPCsPage();
+  }
+
+  function renderPagination(totalItems, totalPages) {
+    const el = document.getElementById('pcPagination');
+    if (!el) return;
+    if (totalItems <= PC_PAGE_SIZE) { el.innerHTML = ''; return; }
+
+    let html = '<nav aria-label="Navigasi halaman PC"><ul class="pagination pagination-sm mb-0">';
+    html += `<li class="page-item ${pcCurrentPage === 1 ? 'disabled' : ''}">
+                <button class="page-link" onclick="goToPCPage(${pcCurrentPage - 1})"><i class="bi bi-chevron-left"></i></button>
+              </li>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<li class="page-item ${i === pcCurrentPage ? 'active' : ''}">
+                  <button class="page-link" onclick="goToPCPage(${i})">${i}</button>
+                </li>`;
+    }
+    html += `<li class="page-item ${pcCurrentPage === totalPages ? 'disabled' : ''}">
+                <button class="page-link" onclick="goToPCPage(${pcCurrentPage + 1})"><i class="bi bi-chevron-right"></i></button>
+              </li>`;
+    html += '</ul></nav>';
+    el.innerHTML = html;
+  }
+
+  function updateStatSummary(pcs) {
+    const total = pcs.length;
+    const available = pcs.filter(p => p.status === 'available').length;
+    const inUse = pcs.filter(p => p.status === 'in-use').length;
+    const pausedOrMaint = pcs.filter(p => p.status === 'paused' || p.status === 'maintenance').length;
+    document.getElementById('statTotal').innerText = total;
+    document.getElementById('statAvailable').innerText = available;
+    document.getElementById('statInUse').innerText = inUse;
+    document.getElementById('statPaused').innerText = pausedOrMaint;
+  }
+
+  function buildPCStateInfo(pc) {
+    let statusKey = 'available';
+    let statusText = 'Kosong';
+    let statusIcon = 'bi-check-circle-fill';
+
+    if (pc.status === 'in-use') { statusKey = 'inuse'; statusText = 'Dipakai'; statusIcon = 'bi-person-fill'; }
+    else if (pc.status === 'maintenance') { statusKey = 'maintenance'; statusText = 'Maintenance'; statusIcon = 'bi-tools'; }
+    else if (pc.status === 'paused') { statusKey = 'paused'; statusText = 'Jeda'; statusIcon = 'bi-pause-circle-fill'; }
+
+    let actions = '';
+    const safeUser = String(pc.user_name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    if (pc.status === 'maintenance') {
+      actions = `<div class="card-action-bar">
+                   <button class="btn btn-sm btn-success" onclick="setMaintenance(${pc.id}, 'available')"><i class="bi bi-check-lg"></i> Available</button>
+                   <button class="btn btn-sm btn-outline-danger" onclick="deletePC(${pc.id})"><i class="bi bi-trash"></i></button>
+                 </div>`;
+    } else if (pc.status === 'available') {
+      actions = `<div class="card-action-bar">
+                   <button class="btn btn-sm btn-success" onclick="openStartModal(${pc.id})"><i class="bi bi-play-fill"></i> Mulai</button>
+                   <button class="btn btn-sm btn-dark" onclick="setMaintenance(${pc.id}, 'maintenance')"><i class="bi bi-tools"></i> Maint</button>
+                   <button class="btn btn-sm btn-outline-danger" onclick="deletePC(${pc.id})"><i class="bi bi-trash"></i></button>
+                 </div>`;
+    } else if (pc.status === 'in-use') {
+      actions = `<div class="card-action-bar">
+                   <button class="btn btn-sm btn-warning text-dark" onclick="pauseSession(${pc.id})"><i class="bi bi-pause-fill"></i> Jeda</button>
+                   <button class="btn btn-sm btn-secondary" onclick="openExtendModal(${pc.id}, '${safeUser}')"><i class="bi bi-plus-lg"></i> Waktu</button>
+                   <button class="btn btn-sm btn-outline-primary" onclick="openMoveModal(${pc.id}, '${safeUser}')"><i class="bi bi-arrow-left-right"></i> Pindah</button>
+                   <button class="btn btn-sm btn-outline-danger" onclick="reduceTime(${pc.id}, 15)">-15m</button>
+                   <button class="btn btn-sm btn-outline-danger" onclick="reduceTime(${pc.id}, 30)">-30m</button>
+                   <button class="btn btn-sm btn-info text-white" onclick="openChatModal(${pc.id}, '${safeUser}')"><i class="bi bi-chat-dots"></i></button>
+                   <button class="btn btn-sm btn-danger" onclick="endSession(${pc.id})"><i class="bi bi-stop-fill"></i> Selesai</button>
+                 </div>`;
+    } else if (pc.status === 'paused') {
+      actions = `<div class="card-action-bar">
+                   <button class="btn btn-sm btn-primary" onclick="resumeSession(${pc.id})"><i class="bi bi-play-fill"></i> Lanjut</button>
+                   <button class="btn btn-sm btn-outline-primary" onclick="openMoveModal(${pc.id}, '${safeUser}')"><i class="bi bi-arrow-left-right"></i> Pindah</button>
+                   <button class="btn btn-sm btn-outline-danger" onclick="reduceTime(${pc.id}, 15)">-15m</button>
+                   <button class="btn btn-sm btn-info text-white" onclick="openChatModal(${pc.id}, '${safeUser}')"><i class="bi bi-chat-dots"></i></button>
+                   <button class="btn btn-sm btn-danger" onclick="endSession(${pc.id})"><i class="bi bi-stop-fill"></i> Selesai</button>
+                 </div>`;
+    }
+
+    const isSessionActive = pc.status === 'in-use' || pc.status === 'paused';
+    const safeUserName = isSessionActive ? (pc.user_name || '-') : '-';
+    const safeSessionCount = (pc.today_sessions !== undefined ? pc.today_sessions : (pc.user_session_count !== undefined ? pc.user_session_count : 0));
+
+    let safeBalanceTime = '-';
+    if (isSessionActive && pc.saldo_hours !== undefined && pc.saldo_hours !== null) {
+      const hVal = parseFloat(pc.saldo_hours);
+      if (!isNaN(hVal)) {
+        safeBalanceTime = (Number.isInteger(hVal) ? hVal : hVal.toFixed(1)) + ' Jam';
+      }
+    }
+
+    const safeTimer = isSessionActive ? (pc.formatted_time || '00:00:00') : '--:--:--';
+    return { statusKey, statusText, statusIcon, actions, safeUserName, safeSessionCount, safeBalanceTime, safeTimer, isSessionActive };
+  }
+
+  function createPCCardElement(pc) {
+    const state = buildPCStateInfo(pc);
+    const col = document.createElement('div');
+    col.className = 'col-md-6 col-xl-3 mb-3';
+    col.id = `pc-col-${pc.id}`;
+    col.innerHTML = generateCardHTML(pc, state);
+    return col;
+  }
+
+  function updatePCCardElement(col, pc) {
+    const state = buildPCStateInfo(pc);
+    const innerCard = col.querySelector('.pc-card');
+    if (innerCard) innerCard.innerHTML = generateCardInnerHTML(pc, state);
+  }
+
+  function generateCardInnerHTML(pc, state) {
+    return `
+      <div class="status-strip ${state.statusKey}"></div>
+      <div class="pc-head">
+        <div class="d-flex justify-content-between align-items-start">
+          <h5 class="mb-0 fw-bold">${pc.code || ''}</h5>
+          <span class="status-pill ${state.statusKey}"><i class="bi ${state.statusIcon}"></i> ${state.statusText}</span>
+        </div>
+        <p class="small text-muted mb-0 mt-1"><i class="bi bi-geo-alt"></i> ${pc.location || '-'}</p>
+      </div>
+      <div class="pc-body">
+        <div class="pc-info-box">
+          <div class="pc-info-item"><span><i class="bi bi-person me-1"></i>Nama Pengguna</span><span class="val">${state.safeUserName}</span></div>
+          <div class="pc-info-item"><span><i class="bi bi-arrow-repeat me-1"></i>Sesi Hari Ini</span><span class="val">${state.safeSessionCount}</span></div>
+          <div class="pc-info-item"><span><i class="bi bi-wallet2 me-1"></i>Saldo (Jam)</span><span class="val font-mono">${state.safeBalanceTime}</span></div>
+        </div>
+        <div class="timer-display font-mono ${state.isSessionActive ? 'is-running' : 'is-idle'}">${state.safeTimer}</div>
+        ${state.actions}
+      </div>
+    `;
+  }
+
+  function generateCardHTML(pc, state) {
+    return `<div class="pc-card">${generateCardInnerHTML(pc, state)}</div>`;
+  }
+
+  // ---------- Queue ----------
+  function handleQueuePurposeChange(val) {
+    const extraCol = document.getElementById('queueExtraTimeCol');
+    extraCol.style.display = (val === 'kawan perpus nambah') ? 'block' : 'none';
+  }
+
+  function loadQueue() { socket.emit('get_queue', {}, renderQueue); }
+
+  function renderQueue(data) {
+    const rows = data || [];
+    document.getElementById('queueBadge').innerText = rows.length || 0;
+    const tbody = document.getElementById('queueTableBody');
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i> Belum ada antrean</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = '';
+    rows.forEach((q, idx) => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${q.user_name}</td>
+          <td>${q.purpose} ${q.duration_minutes ? '(+' + q.duration_minutes + 'm)' : ''}</td>
+          <td>${q.created_at || '-'}</td>
+          <td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="removeQueue(${q.id})"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `;
+    });
+  }
+
+  function addQueue() {
+    const user_name = document.getElementById('queueUserName').value;
+    const purpose = document.getElementById('queuePurpose').value;
+    const duration_minutes = purpose === 'kawan perpus nambah' ? parseInt(document.getElementById('queueExtraMinutes').value || 60) : 60;
+    if (!user_name) return alert('Nama wajib');
+    socket.emit('add_queue', { user_name, purpose, duration_minutes }, () => {
+      document.getElementById('queueUserName').value = '';
+    });
+  }
+  function removeQueue(id) { socket.emit('remove_queue', id); }
+
+  // ---------- Daily Activity & Admin Quota ----------
+  function loadDailyActivity() {
+    socket.emit('get_daily_activity', {}, (rows) => {
+      rows = rows || [];
+      const tbody = document.getElementById('dailyActivityTableBody');
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i> Belum ada aktivitas hari ini</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = '';
+      rows.forEach(r => {
+        const isFull = r.total_sessions >= 2;
+        tbody.innerHTML += `
+          <tr>
+            <td>${r.username}</td>
+            <td>${r.total_sessions} / 2 kali</td>
+            <td><span class="badge ${isFull ? 'badge-soft-danger' : 'badge-soft-success'}">${isFull ? 'Penuh' : 'Tersedia'}</span></td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteUserDailyActivity('${r.username}')">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset (Izinkan Lagi)
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    });
+  }
+
+  function deleteUserDailyActivity(username) {
+    if (confirm(`Hapus aktivitas harian ${username}?`)) {
+      socket.emit('delete_user_daily_activity', { username }, (res) => {
+        alert(res.message);
+        loadDailyActivity();
+      });
+    }
+  }
+
+  function adminCrudQuota() {
+    const oldName = document.getElementById('adminOldName').value;
+    const newName = document.getElementById('adminNewName').value;
+    const newCount = document.getElementById('adminNewCount').value;
+    socket.emit('admin_crud_user_quota', { oldName, newName, newCount }, (res) => {
+      alert(res.message || res.error);
+      loadDailyActivity();
+    });
+  }
+
+  function resetAllDailyQuotas() {
+    if (confirm('Reset seluruh kuota hari ini?')) {
+      socket.emit('reset_all_daily_quotas', {}, (res) => {
+        alert(res.message);
+        loadDailyActivity();
+      });
+    }
+  }
+
+  // ---------- Session History ----------
+  function loadSessionHistory() {
+    socket.emit('get_session_history', {}, (rows) => {
+      rows = rows || [];
+      const tbody = document.getElementById('sessionHistoryBody');
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i> Belum ada riwayat sesi</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = '';
+      rows.forEach(r => {
+        const isFinished = !!r.end_time;
+        tbody.innerHTML += `
+          <tr>
+            <td>${r.id}</td>
+            <td>${r.code}</td>
+            <td>${r.username}</td>
+            <td>${r.purpose}</td>
+            <td>${r.start_time}</td>
+            <td>${r.end_time || '-'}</td>
+            <td><span class="badge ${isFinished ? 'badge-soft-neutral' : 'badge-soft-success'}">${isFinished ? 'Selesai' : 'Berlangsung'}</span></td>
+          </tr>
+        `;
+      });
+    });
+  }
+
+  socket.emit('get_queue', {}, renderQueue);
+</script>
+</body>
+</html>

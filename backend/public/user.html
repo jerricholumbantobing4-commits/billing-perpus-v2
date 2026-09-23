@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Billing Perpus — PC User</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💻</text></svg>" id="favicon">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<style>
+  :root{
+    --bg-body: #0a0a0c;
+    --bg-panel: #141418;
+    --bg-sidebar: #101014;
+    --bg-header: #101014;
+    --bg-footer: #101014;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0ab;
+    --text-muted: #5c5c66;
+    --accent-green: #22c55e;
+    --accent-green-glow: rgba(34, 197, 94, 0.3);
+    --accent-red: #ef4444;
+    --accent-gold: #f59e0b;
+    --accent-blue: #3b82f6;
+    --accent-violet: #8b5cf6;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background-color: var(--bg-body); color: var(--text-primary);
+    font-family: var(--font-body); overflow:hidden; -webkit-user-select:none; user-select:none;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+
+  .header {
+    height: 60px; background: var(--bg-header); border-bottom: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+    flex-shrink: 0; z-index: 10;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+  }
+  .header:hover {
+    background: #16161c;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo-box {
+    width: 34px; height: 34px; background: var(--accent-green); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1.1rem; color: #000; font-family: var(--font-display);
+    box-shadow: 0 0 12px var(--accent-green-glow);
+  }
+  .brand-text { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--accent-green); letter-spacing: -0.3px; }
+  .brand-sub { font-size: 0.65rem; color: var(--text-secondary); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .status-badge {
+    display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 16px;
+    background: rgba(34, 197, 94, 0.1); color: var(--accent-green); border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+  .status-badge.off { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.2); }
+  .status-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+  .clock-display { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+  .date-display { font-size: 0.65rem; color: var(--text-secondary); text-align: right; }
+  .main-body { flex: 1; display: flex; overflow: hidden; }
+  .sidebar {
+    width: 240px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
+    display: flex; flex-direction: column; padding: 14px; gap: 10px; flex-shrink: 0; overflow-y: auto;
+  }
+  .panel-box {
+    background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 10px;
+    padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .panel-title { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .label { color: var(--text-secondary); }
+  .info-row .value { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+  .info-row .value.highlight { color: var(--accent-green); }
+  .main-content {
+    flex: 1; background: var(--bg-body); display: flex; flex-direction: column;
+    padding: 20px; gap: 16px; overflow: hidden; position: relative;
+  }
+  .main-bg-layer {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background-size: cover; background-position: center; opacity: 0.05; z-index: 0; pointer-events: none;
+  }
+  .content-wrapper { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+  .status-card {
+    background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 16px;
+    padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; flex: 1; box-shadow: 0 8px 24px rgba(0,0,0,0.4); position: relative; overflow: hidden;
+  }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 99px;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    border: 1px solid transparent; margin-bottom: 16px;
+  }
+  .status-pill.available { background: rgba(34, 197, 94, 0.1); color: var(--accent-green); border-color: rgba(34, 197, 94, 0.2); }
+  .status-pill.inuse { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.2); }
+  .status-pill.paused { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border-color: rgba(245, 158, 11, 0.2); }
+  .status-pill.maintenance { background: rgba(139, 92, 246, 0.1); color: var(--accent-violet); border-color: rgba(139, 92, 246, 0.2); }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+  .timer-display {
+    font-family: var(--font-mono); font-size: clamp(3rem, 8vw, 6rem); font-weight: 700; line-height: 1;
+    color: var(--text-primary); letter-spacing: -2px; text-shadow: 0 0 30px rgba(255, 255, 255, 0.08); margin: 5px 0;
+  }
+  .timer-display.dim { color: var(--text-muted); text-shadow: none; }
+  .headline { font-family: var(--font-display); font-size: 1.8rem; font-weight: 600; color: var(--text-primary); }
+  .subline { color: var(--text-secondary); font-size: 0.9rem; max-width: 450px; margin-top: 8px; }
+  .info-grid {
+    display: flex; gap: 30px; justify-content: center; margin-top: 20px;
+    background: rgba(0, 0, 0, 0.2); padding: 14px 28px; border-radius: 12px; border: 1px solid var(--border-color);
+  }
+  .info-item { text-align: center; }
+  .info-item .lbl { color: var(--text-muted); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .info-item .val { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-top: 3px; }
+  .bottom-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .info-card {
+    background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 10px;
+    padding: 14px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .info-card .icon {
+    width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);
+    display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+  }
+  .info-card .text h4 { margin: 0 0 3px 0; font-size: 0.8rem; color: var(--text-primary); }
+  .info-card .text p { margin: 0; font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; }
+  .footer {
+    height: 45px; background: var(--bg-footer); border-top: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+    flex-shrink: 0; font-size: 0.7rem; color: var(--text-secondary); z-index: 10;
+  }
+  .footer-left { display: flex; align-items: center; gap: 12px; }
+  .footer-left span { color: var(--accent-green); font-weight: 600; }
+  .footer-right { display: flex; gap: 10px; }
+  .btn-footer {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary);
+    padding: 5px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-footer:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+  .btn-footer.danger { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+  .btn-footer.danger:hover { background: rgba(239, 68, 68, 0.1); }
+  .warn-banner {
+    position: fixed; top: 70px; left: 50%; transform: translate(-50%, -150%); z-index: 100;
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.25, 1.1); width: 90%; max-width: 480px;
+  }
+  .warn-banner.show { transform: translate(-50%, 0); }
+  .warn-card {
+    background: linear-gradient(155deg, #2a1a1a, #1a0f0f); border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 14px; box-shadow: 0 16px 32px rgba(0,0,0,0.5); padding: 14px 18px;
+    display: flex; gap: 12px; align-items: flex-start; color: #fff;
+  }
+  .warn-card .icon {
+    width: 36px; height: 36px; border-radius: 10px; background: rgba(239, 68, 68, 0.2); color: var(--accent-red);
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+  }
+  .warn-card .body { flex: 1; }
+  .warn-card .title { font-weight: 700; font-size: 0.8rem; color: #ffb3b3; margin-bottom: 3px; }
+  .warn-card .msg { font-size: 0.9rem; line-height: 1.4; color: #f0f0f0; }
+  .warn-card .close { background: none; border: none; color: #888; font-size: 1.1rem; cursor: pointer; padding: 0 3px; }
+  .warn-progress { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .warn-progress .bar { height: 100%; background: var(--accent-red); width: 100%; transform-origin: left; animation: shrink 20s linear forwards; }
+  @keyframes shrink { to { transform: scaleX(0); } }
+  .warn-card.variant-success { border-color: rgba(34, 197, 94, 0.3); background: linear-gradient(155deg, #1a2e1f, #0f1a12); }
+  .warn-card.variant-success .icon { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+  .warn-card.variant-success .title { color: #b3ffcc; }
+  .warn-card.variant-success .warn-progress .bar { background: var(--accent-green); }
+  .warn-card.variant-warn { border-color: rgba(245, 158, 11, 0.3); background: linear-gradient(155deg, #2e261a, #1a150f); }
+  .warn-card.variant-warn .icon { background: rgba(245, 158, 11, 0.2); color: var(--accent-gold); }
+  .warn-card.variant-warn .title { color: #ffe0b3; }
+  .warn-card.variant-warn .warn-progress .bar { background: var(--accent-gold); }
+  .warn-card.variant-info { border-color: rgba(139, 92, 246, 0.3); background: linear-gradient(155deg, #261a2e, #150f1a); }
+  .warn-card.variant-info .icon { background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); }
+  .warn-card.variant-info .title { color: #d9b3ff; }
+  .warn-card.variant-info .warn-progress .bar { background: var(--accent-violet); }
+
+  /* ================= MODAL POPUP PAKSA ================= */
+  .force-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .force-modal-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .force-modal {
+    background: var(--bg-panel);
+    border: 2px solid var(--accent-green);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(34, 197, 94, 0.4);
+    animation: popIn 0.4s cubic-bezier(0.2, 0.9, 0.25, 1.1);
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .force-modal.danger { border-color: var(--accent-red); box-shadow: 0 0 60px rgba(239, 68, 68, 0.4); }
+  .force-modal.warn { border-color: var(--accent-gold); box-shadow: 0 0 60px rgba(245, 158, 11, 0.4); }
+  .force-modal.info { border-color: var(--accent-violet); box-shadow: 0 0 60px rgba(139, 92, 246, 0.4); }
+  
+  .force-modal .modal-icon {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 20px;
+    animation: pulse 1.5s infinite;
+  }
+  .force-modal.danger .modal-icon { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+  .force-modal.warn .modal-icon { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
+  .force-modal.info .modal-icon { background: rgba(139, 92, 246, 0.15); color: var(--accent-violet); }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  
+  .force-modal .modal-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+  .force-modal .modal-message {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+  .force-modal .modal-btn {
+    background: var(--accent-green);
+    color: #000;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .force-modal .modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+  }
+
+  /* ================= TOMBOL HIDE WIDGET ================= */
+  .btn-hide-widget {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 8px;
+    font-family: var(--font-body);
+  }
+  .btn-hide-widget:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fff;
+  }
+
+  .center-msg {
+    height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: var(--text-secondary);
+  }
+  .center-msg h1 { font-family: var(--font-display); font-size: 1.8rem; color: var(--text-primary); margin-bottom: 8px; }
+  .btn-primary {
+    background: var(--accent-blue); border: none; color: white; padding: 10px 20px;
+    border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 16px;
+  }
+
+  /* ================= WIDGET KECIL ================= */
+  @media (max-width: 500px), (max-height: 300px) {
+    .sidebar,
+    .header-left,
+    .header-right .status-badge,
+    .footer,
+    .bottom-cards,
+    .info-grid,
+    .subline {
+      display: none !important;
+    }
+
+    .header {
+      height: 40px;
+      padding: 0 12px;
+      background: linear-gradient(135deg, #0f0f14, #1a1a24);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .header::before {
+      content: "Billing V.2";
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    .header::after {
+      content: attr(data-pc);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-left: auto;
+    }
+
+    .main-body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-content {
+      padding: 10px;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .status-card {
+      padding: 10px;
+      border-radius: 10px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    .status-pill {
+      padding: 4px 10px;
+      font-size: 0.6rem;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .timer-display {
+      font-size: 2.2rem;
+      letter-spacing: -1px;
+      margin: 2px 0;
+    }
+
+    .headline {
+      font-size: 1.1rem;
+      margin-bottom: 2px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Force Modal Popup -->
+<div class="force-modal-overlay" id="forceModalOverlay">
+  <div class="force-modal" id="forceModal">
+    <div class="modal-icon" id="forceModalIcon"><i class="bi bi-info-circle-fill"></i></div>
+    <div class="modal-title" id="forceModalTitle">Notifikasi</div>
+    <div class="modal-message" id="forceModalMessage"></div>
+    <button class="modal-btn" onclick="closeForceModal()">
+      <i class="bi bi-check-lg"></i> OK, Mengerti
+    </button>
+  </div>
+</div>
+
+<div id="root"></div>
+
+<script>
+  const socket = io('/', { transports: ['websocket', 'polling'] });
+  const root = document.getElementById('root');
+  
+  // ================= DETEKSI ELECTRON =================
+  const isElectron = typeof window.electronAPI !== 'undefined';
+  console.log('[Init] Running in Electron:', isElectron);
+
+  let allPCs = [];
+  let hasData = false;
+
+  // ================= AMBIL PC_CODE DARI URL SAJA =================
+  // Jangan pakai localStorage — supaya widget selalu sesuai nomor PC-nya
+  let myCode = new URLSearchParams(location.search).get('pc') || null;
+  console.log('[Init] myCode dari URL:', myCode);
+  console.log('[Init] URL Search:', location.search);
+
+  // Auto-fix: kalau ada localStorage lama, hapus
+  if (localStorage.getItem('kioskPcCode')) {
+    console.log('[Init] Menghapus localStorage lama:', localStorage.getItem('kioskPcCode'));
+    localStorage.removeItem('kioskPcCode');
+  }
+
+  let warnTimer = null;
+  const warnQueue = [];
+  let lastKnownStatus = undefined;
+  let lastKnownDurationMinutes = undefined;
+
+  // ================= FUNGSI HIDE WIDGET =================
+  function hideWidget() {
+    if (isElectron && window.electronAPI) {
+      console.log('[Hide] User hides widget');
+      window.electronAPI.hideWidget();
+    }
+  }
+
+  // ================= DOUBLE-CLICK HEADER = HIDE WIDGET =================
+  document.addEventListener('dblclick', function(e) {
+    if (!isElectron) return;
+    if (e.target.closest('.header')) {
+      if (e.target.closest('button') || e.target.closest('a')) return;
+      console.log('[DblClick] Hiding widget from header double-click');
+      window.electronAPI.hideWidget();
+    }
+  });
+
+  // ================= NOTIFIKASI =================
+  let originalTitle = document.title;
+  let titleInterval = null;
+  let isTitleBlinking = false;
+  let pendingForceModals = [];
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  function playNotificationSound() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.frequency.value = 880;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.5);
+      setTimeout(() => {
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.frequency.value = 1100;
+        osc2.type = 'sine';
+        gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc2.start(audioCtx.currentTime);
+        osc2.stop(audioCtx.currentTime + 0.5);
+      }, 200);
+    } catch (e) {}
+  }
+
+  function sendDesktopNotification(title, message, icon = '⚠️') {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const notification = new Notification(icon + ' ' + title, {
+          body: message,
+          icon: 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💻</text></svg>`),
+          tag: 'billing-notification',
+          requireInteraction: true
+        });
+        notification.onclick = function() {
+          window.focus();
+          notification.close();
+        };
+        setTimeout(() => notification.close(), 30000);
+      } catch (e) {}
+    }
+  }
+
+  function startTitleBlink(text) {
+    if (isTitleBlinking) return;
+    isTitleBlinking = true;
+    let toggle = false;
+    titleInterval = setInterval(() => {
+      document.title = toggle ? '🔴 ' + text : '⬜ ' + text;
+      toggle = !toggle;
+    }, 800);
+  }
+
+  function stopTitleBlink() {
+    if (titleInterval) { clearInterval(titleInterval); titleInterval = null; }
+    isTitleBlinking = false;
+    document.title = originalTitle;
+  }
+
+  function changeFavicon(alert) {
+    const favicon = document.getElementById('favicon');
+    if (alert) {
+      favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔴</text></svg>";
+    } else {
+      favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💻</text></svg>";
+    }
+  }
+
+  // ================= FUNGSI POPUP PAKSA =================
+  function showForceModal(toast) {
+    const iconMap = {
+      'danger': 'bi-exclamation-triangle-fill',
+      'success': 'bi-check-circle-fill',
+      'warn': 'bi-pause-circle-fill',
+      'info': 'bi-info-circle-fill'
+    };
+    document.getElementById('forceModalIcon').className = 'bi ' + (iconMap[toast.variant] || 'bi-info-circle-fill');
+    document.getElementById('forceModalTitle').innerText = toast.title || 'Notifikasi';
+    document.getElementById('forceModalMessage').innerText = toast.message || '';
+    
+    const modal = document.getElementById('forceModal');
+    modal.className = 'force-modal ' + (toast.variant || 'info');
+    
+    document.getElementById('forceModalOverlay').classList.add('show');
+    
+    playNotificationSound();
+  }
+
+  function closeForceModal() {
+    document.getElementById('forceModalOverlay').classList.remove('show');
+    
+    if (isElectron && window.electronAPI) {
+      window.electronAPI.dismissNotification();
+    }
+    
+    if (pendingForceModals.length > 0) {
+      setTimeout(() => {
+        const next = pendingForceModals.shift();
+        showForceModal(next);
+      }, 400);
+    }
+  }
+
+  // ================= FUNGSI UTAMA NOTIFIKASI =================
+  function triggerNotification(toast) {
+    playNotificationSound();
+    
+    const iconMap = { 'danger': '⚠️', 'success': '✅', 'warn': '⏸️', 'info': 'ℹ️' };
+    sendDesktopNotification(
+      toast.title || 'Notifikasi', 
+      toast.message || '', 
+      iconMap[toast.variant] || 'ℹ️'
+    );
+    
+    if (isElectron) {
+      showForceModal(toast);
+      if (window.electronAPI) {
+        window.electronAPI.triggerNotification({
+          title: toast.title,
+          message: toast.message
+        });
+      }
+      return;
+    }
+    
+    if (document.hidden) {
+      pendingForceModals.push(toast);
+      try {
+        window.focus();
+        if (window.parent && window.parent !== window) {
+          window.parent.focus();
+        }
+      } catch (e) {}
+      startTitleBlink(toast.title || 'Pesan Baru');
+      changeFavicon(true);
+    } else {
+      queueToast(toast);
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      stopTitleBlink();
+      changeFavicon(false);
+      
+      if (pendingForceModals.length > 0) {
+        const firstModal = pendingForceModals.shift();
+        setTimeout(() => showForceModal(firstModal), 300);
+      }
+    }
+  });
+
+  // ================= SOCKET EVENTS =================
+  socket.on('connect', () => { render(); });
+  socket.on('disconnect', () => { render(); });
+  socket.on('init_pcs', data => { allPCs = data || []; hasData = true; render(); });
+  socket.on('update_pcs', data => { allPCs = data || []; hasData = true; render(); });
+
+  function myPC() { return allPCs.find(p => p.code === myCode); }
+
+  socket.on('receive_admin_chat', data => {
+    if (!data) return;
+    const pc = myPC();
+    if (!pc || String(data.pcId) !== String(pc.id)) return;
+    triggerNotification({
+      variant: 'danger',
+      icon: 'bi-exclamation-triangle-fill',
+      title: '💬 PESAN DARI PETUGAS',
+      message: data.message || ''
+    });
+  });
+
+  function selectPC(code) {
+    myCode = code;
+    localStorage.setItem('kioskPcCode', code);
+    render();
+  }
+
+  function changePC() {
+    if (confirm('Ganti konfigurasi PC untuk layar ini?')) {
+      localStorage.removeItem('kioskPcCode');
+      myCode = null;
+      render();
+    }
+  }
+
+  function queueToast(toast) {
+    warnQueue.push(toast);
+    if (!warnTimer) showNextWarning();
+  }
+
+  function showNextWarning() {
+    if (warnQueue.length === 0) { warnTimer = null; return; }
+    const t = warnQueue.shift();
+    document.getElementById('warnMsg').innerText = t.message || '';
+    document.getElementById('warnTitle').innerText = t.title || '';
+    document.getElementById('warnIcon').className = 'bi ' + (t.icon || 'bi-info-circle-fill');
+    const card = document.getElementById('warnCard');
+    card.className = 'warn-card' + (t.variant && t.variant !== 'danger' ? ' variant-' + t.variant : '');
+    const bar = document.getElementById('warnBar');
+    bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = null;
+    document.getElementById('warnBanner').classList.add('show');
+    const duration = t.duration || 20000;
+    warnTimer = setTimeout(dismissWarning, duration);
+  }
+
+  function dismissWarning() {
+    document.getElementById('warnBanner').classList.remove('show');
+    clearTimeout(warnTimer);
+    warnTimer = null;
+    stopTitleBlink();
+    changeFavicon(false);
+    setTimeout(showNextWarning, 500);
+  }
+
+  function fmtClock() {
+    const d = new Date();
+    return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  }
+  function fmtDate() {
+    const d = new Date();
+    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  setInterval(() => {
+    const c = document.getElementById('liveClock');
+    if (c) c.innerText = fmtClock();
+  }, 1000 * 15);
+
+  function parseServerTime(raw) {
+    if (!raw) return '00:00:00';
+    const parts = String(raw).split('.');
+    if (parts.length !== 3) return String(raw);
+    const [h, m, s] = parts;
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:${s.padStart(2, '0')}`;
+  }
+
+  function detectStatusTransition(newStatus) {
+    const prev = lastKnownStatus;
+    lastKnownStatus = newStatus;
+    if (prev === undefined || prev === newStatus) return false;
+
+    if (prev === 'available' && newStatus === 'in-use') {
+      triggerNotification({ variant: 'success', icon: 'bi-play-circle-fill', title: '▶️ SESI DIMULAI', message: 'Petugas telah memulai sesi Anda di unit ini.', duration: 8000 });
+    } else if ((prev === 'in-use' || prev === 'paused') && newStatus === 'available') {
+      triggerNotification({ variant: 'info', icon: 'bi-stop-circle-fill', title: '⏹️ SESI SELESAI', message: 'Sesi Anda telah diakhiri oleh petugas.', duration: 8000 });
+    } else if (prev === 'in-use' && newStatus === 'paused') {
+      triggerNotification({ variant: 'warn', icon: 'bi-pause-circle-fill', title: '⏸️ SESI DIJEDA', message: 'Petugas menjeda sesi Anda. Saldo waktu berhenti berkurang.', duration: 8000 });
+    } else if (prev === 'paused' && newStatus === 'in-use') {
+      triggerNotification({ variant: 'success', icon: 'bi-play-circle-fill', title: '▶️ SESI DILANJUTKAN', message: 'Sesi Anda dilanjutkan oleh petugas.', duration: 8000 });
+    }
+    return true;
+  }
+
+  function detectDurationChange(pc, statusChanged) {
+    const curDur = (pc.current_duration_minutes !== undefined && pc.current_duration_minutes !== null)
+      ? Number(pc.current_duration_minutes) : null;
+
+    if (!statusChanged && (pc.status === 'in-use' || pc.status === 'paused') &&
+        curDur !== null && lastKnownDurationMinutes !== undefined && lastKnownDurationMinutes !== null) {
+      const diff = curDur - lastKnownDurationMinutes;
+      if (diff > 0) {
+        triggerNotification({ variant: 'success', icon: 'bi-plus-circle-fill', title: '➕ WAKTU DITAMBAHKAN', message: `+${diff} menit ditambahkan oleh petugas ke saldo Anda.` });
+      } else if (diff < 0) {
+        triggerNotification({ variant: 'warn', icon: 'bi-dash-circle-fill', title: '➖ WAKTU DIKURANGI', message: `-${Math.abs(diff)} menit dikurangi oleh petugas.` });
+      }
+    }
+    lastKnownDurationMinutes = curDur;
+  }
+
+  function render() {
+    if (!myCode) return renderSelector();
+    if (!hasData) return renderLoading();
+
+    const pc = allPCs.find(p => p.code === myCode);
+    if (!pc) {
+      console.log('[Render] PC tidak ditemukan di database:', myCode);
+      myCode = null;
+      localStorage.removeItem('kioskPcCode');
+      return renderSelector();
+    }
+
+    const statusChanged = detectStatusTransition(pc.status);
+    detectDurationChange(pc, statusChanged);
+
+    const isSessionActive = pc.status === 'in-use' || pc.status === 'paused';
+    const userName = isSessionActive ? (pc.user_name || '-') : '-';
+    const sessionCount = pc.today_sessions !== undefined ? pc.today_sessions
+      : (pc.user_session_count !== undefined ? pc.user_session_count : 0);
+    let saldo = '-';
+    if (isSessionActive && pc.saldo_hours !== undefined && pc.saldo_hours !== null) {
+      const h = parseFloat(pc.saldo_hours);
+      if (!isNaN(h)) saldo = (Number.isInteger(h) ? h : h.toFixed(1)) + ' Jam';
+    }
+    const timerStr = isSessionActive ? parseServerTime(pc.formatted_time) : '--:--:--';
+
+    let centerContent = '';
+    if (pc.status === 'available') {
+      centerContent = `
+        <div class="status-pill available"><span class="dot"></span>PC KOSONG</div>
+        <div class="headline">Siap Digunakan</div>
+        <div class="subline">Silakan hubungi petugas perpustakaan untuk memulai sesi di unit ini.</div>
+      `;
+    } else if (pc.status === 'maintenance') {
+      centerContent = `
+        <div class="status-pill maintenance"><span class="dot"></span>MAINTENANCE</div>
+        <div class="headline">Sedang Dalam Perbaikan</div>
+        <div class="subline">Mohon jangan menggunakan unit ini sampai perbaikan selesai.</div>
+      `;
+    } else if (pc.status === 'in-use') {
+      centerContent = `
+        <div class="status-pill inuse"><span class="dot"></span>SEDANG DIGUNAKAN</div>
+        <div class="timer-display">${timerStr}</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="lbl">PENGGUNA</div><div class="val">${userName}</div></div>
+          <div class="info-item"><div class="lbl">SALDO WAKTU</div><div class="val">${saldo}</div></div>
+          <div class="info-item"><div class="lbl">SESI KE</div><div class="val">${sessionCount} / 2</div></div>
+        </div>
+      `;
+    } else if (pc.status === 'paused') {
+      centerContent = `
+        <div class="status-pill paused"><span class="dot"></span>SESI DIJEDA</div>
+        <div class="timer-display dim">${timerStr}</div>
+        <div class="subline" style="margin-top:-8px;">Sesi dijeda oleh petugas. Saldo waktu tidak berkurang.</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="lbl">PENGGUNA</div><div class="val">${userName}</div></div>
+          <div class="info-item"><div class="lbl">SALDO WAKTU</div><div class="val">${saldo}</div></div>
+          <div class="info-item"><div class="lbl">SESI KE</div><div class="val">${sessionCount} / 2</div></div>
+        </div>
+      `;
+    }
+
+    root.innerHTML = `
+      <div style="display:flex; flex-direction:column; height:100vh;">
+        <div class="header" data-pc="${pc.code}" title="Klik 2x di bar ini untuk menyembunyikan widget">
+          <div class="header-left">
+            <div class="logo-box">9</div>
+            <div>
+              <div class="brand-text">Biling V.2</div>
+              <div class="brand-sub">Jl. Cikini Raya No. 73, Cikini, Kecamatan Menteng, Jakarta Pusat</div>
+            </div>
+          </div>
+          <button class="btn-hide-widget" onclick="hideWidget()" title="Sembunyikan widget">
+            <i class="bi bi-eye-slash-fill"></i> Hide
+          </button>
+          <div class="header-right">
+            <div class="status-badge ${socket.connected ? '' : 'off'}">
+              <span class="dot"></span> ${socket.connected ? 'Connected' : 'Disconnected'}
+            </div>
+            <div>
+              <div class="clock-display" id="liveClock">${fmtClock()}</div>
+              <div class="date-display">${fmtDate()}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-body">
+          <div class="sidebar">
+            <div class="panel-box">
+              <div class="panel-title">Status Sesi</div>
+              <div class="info-row"><span class="label">PC</span><span class="value">${pc.code}</span></div>
+              <div class="info-row"><span class="label">Lokasi</span><span class="value">${pc.location || '-'}</span></div>
+              <div class="info-row"><span class="label">Status</span><span class="value" style="color:${pc.status === 'in-use' ? 'var(--accent-red)' : pc.status === 'paused' ? 'var(--accent-gold)' : 'var(--accent-green)'}">${pc.status === 'in-use' ? 'Dipakai' : pc.status === 'paused' ? 'Jeda' : pc.status === 'maintenance' ? 'Maintenance' : 'Kosong'}</span></div>
+            </div>
+
+            ${isSessionActive ? `
+            <div class="panel-box">
+              <div class="panel-title">Detail Pengguna</div>
+              <div class="info-row"><span class="label">Nama</span><span class="value highlight">${userName}</span></div>
+              <div class="info-row"><span class="label">Saldo</span><span class="value">${saldo}</span></div>
+              <div class="info-row"><span class="label">Sesi Ke</span><span class="value">${sessionCount} / 2</span></div>
+            </div>
+            ` : ''}
+
+            <div style="text-align:center; font-size:0.65rem; color:var(--text-muted); margin-top:auto;">
+              Maks. 2x pakai / user / hari
+            </div>
+          </div>
+
+          <div class="main-content">
+            <div class="main-bg-layer"></div>
+            <div class="content-wrapper">
+              <div class="status-card">${centerContent}</div>
+              <div class="bottom-cards">
+                <div class="info-card">
+                  <div class="icon"><i class="bi bi-info-circle-fill"></i></div>
+                  <div class="text"><h4>Informasi</h4><p>Gunakan waktu Anda dengan bijak. Sesi akan otomatis berakhir jika waktu habis.</p></div>
+                </div>
+                <div class="info-card">
+                  <div class="icon" style="background:rgba(245,158,11,0.1); color:var(--accent-gold);"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                  <div class="text"><h4>Peringatan</h4><p>Jangan tinggalkan komputer tanpa pengawasan. Barang berharga Anda adalah tanggung jawab Anda.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div class="footer-left">
+            <span>Biling V.2</span>
+            <span style="color:var(--text-muted);">|</span>
+            <span>WEBSITE INI DIBUAT OLEH SISWA SMKN40 JAKARTA</span>
+          </div>
+          <div class="footer-right">
+            <button class="btn-footer" onclick="changePC()"><i class="bi bi-gear-fill"></i> Admin</button>
+            <button class="btn-footer danger" onclick="alert('Fitur ini hanya untuk demo tampilan.')"><i class="bi bi-power"></i> Turn Off Computer</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderLoading() {
+    root.innerHTML = `<div class="center-msg"><h1>Menghubungkan…</h1><p>Mengambil data unit PC dari server.</p></div>`;
+  }
+
+  function renderNotFound() {
+    root.innerHTML = `<div class="center-msg"><h1>Konfigurasi PC tidak ditemukan</h1><p>Kode "${myCode}" sudah tidak terdaftar di sistem.</p><button class="btn-primary" onclick="changePC()">Pilih Ulang PC</button></div>`;
+  }
+
+  function renderSelector() {
+    if (!hasData) return renderLoading();
+    const items = allPCs.map(p => `
+      <div class="pc-pick" onclick="selectPC('${p.code.replace(/'/g, "\\'")}')" style="background:var(--bg-panel); border:1px solid var(--border-color); padding:14px; border-radius:10px; cursor:pointer; text-align:left; transition:all 0.2s;">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:1rem; color:var(--text-primary);">${p.code}</div>
+        <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:3px;">${p.location || '-'}</div>
+      </div>`).join('');
+    
+    root.innerHTML = `
+      <div class="center-msg" style="width:100%; padding:16px;">
+        <h1>Pilih PC ini</h1>
+        <p style="margin-bottom:24px;">Layar ini akan mengingat pilihan Anda.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:800px;">
+          ${items || '<p>Belum ada PC terdaftar.</p>'}
+        </div>
+      </div>`;
+  }
+
+  render();
+</script>
+</body>
+</html>

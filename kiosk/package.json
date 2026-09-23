@@ -1,0 +1,11 @@
+{
+  "name": "billing-kiosk",
+  "version": "2.0.0",
+  "description": "Kiosk mode untuk PC User Billing Perpus",
+  "main": "kiosk.js",
+  "scripts": {
+    "start": "node kiosk.js"
+  },
+  "author": "SMKN 40 Jakarta",
+  "license": "ISC"
+}
