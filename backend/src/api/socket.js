@@ -87,14 +87,25 @@ function setupSocket(io) {
       }
     });
 
-    socket.on('pause_session', async (data, callback) => {
-      try {
-        const result = await sessionService.pauseSession(data.pcId);
-        if (callback) callback(result);
-      } catch (err) {
-        if (callback) callback({ error: err.message });
-      }
-    });
+  socket.on('pause_session', async (data, callback) => {
+  console.log('=== PAUSE_SESSION RECEIVED ===');
+  console.log('Data:', JSON.stringify(data));
+  console.log('pcId:', data.pcId, 'Type:', typeof data.pcId);
+  
+  try {
+    const result = await sessionService.pauseSession(data.pcId);
+    console.log('Result:', JSON.stringify(result));
+    if (callback) callback(result);
+  } catch (err) {
+    console.error('=== PAUSE ERROR ===');
+    console.error('Full error:', err);
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    
+    const errorMessage = err?.message || err?.toString() || 'Unknown error saat jeda';
+    if (callback) callback({ error: errorMessage });
+  }
+});
 
     socket.on('resume_session', async (data, callback) => {
       try {
@@ -114,23 +125,39 @@ function setupSocket(io) {
       }
     });
 
-    socket.on('reduce_time', async (data, callback) => {
-      try {
-        const result = await sessionService.reduceTime(data.pcId, data.reduceMinutes, data.reason);
-        if (callback) callback(result);
-      } catch (err) {
-        if (callback) callback({ error: err.message });
-      }
-    });
+  socket.on('reduce_time', async (data, callback) => {
+  console.log('=== REDUCE_TIME RECEIVED ===');
+  console.log('Data:', JSON.stringify(data));
+  
+  try {
+    const result = await sessionService.reduceTime(data.pcId, data.reduceMinutes, data.reason);
+    console.log('Result:', JSON.stringify(result));
+    if (callback) callback(result);
+  } catch (err) {
+    console.error('=== REDUCE ERROR ===');
+    console.error('Full error:', err);
+    console.error('Error message:', err.message);
+    const errorMessage = err?.message || err?.toString() || 'Unknown error saat kurangi waktu';
+    if (callback) callback({ error: errorMessage });
+  }
+});
 
-    socket.on('move_session', async (data, callback) => {
-      try {
-        const result = await sessionService.moveSession(data.fromPcId, data.toPcId);
-        if (callback) callback(result);
-      } catch (err) {
-        if (callback) callback({ error: err.message });
-      }
-    });
+   socket.on('move_session', async (data, callback) => {
+  console.log('=== MOVE_SESSION RECEIVED ===');
+  console.log('Data:', JSON.stringify(data));
+  
+  try {
+    const result = await sessionService.moveSession(data.fromPcId, data.toPcId);
+    console.log('Result:', JSON.stringify(result));
+    if (callback) callback(result);
+  } catch (err) {
+    console.error('=== MOVE ERROR ===');
+    console.error('Full error:', err);
+    console.error('Error message:', err.message);
+    const errorMessage = err?.message || err?.toString() || 'Unknown error saat pindah';
+    if (callback) callback({ error: errorMessage });
+  }
+});
 
     // ================= QUEUE =================
     socket.on('get_queue', async (data, callback) => {

@@ -38,15 +38,26 @@ function launchKiosk() {
   console.log(`  PC Code: ${CONFIG.PC_CODE}`);
   console.log('═══════════════════════════════');
 
+   // Profile khusus kiosk (biar tidak konflik dengan Chrome biasa)
+  const userDataDir = path.join(process.env.LOCALAPPDATA || 'C:\\Temp', 'BillingKioskProfile');
+  
   const flags = [
     '--kiosk',
     '--app=' + url,
+    '--user-data-dir="' + userDataDir + '"',
+    '--no-first-run',
+    '--no-default-browser-check',
     '--disable-pinch',
     '--overscroll-history-navigation=0',
     '--disable-features=TranslateUI',
     '--noerrdialogs',
     '--disable-infobars',
-    '--start-fullscreen'
+    '--disable-session-crashed-bubble',
+    '--disable-prompt-on-repost',
+    '--disable-sync',
+    '--disable-background-networking',
+    '--disable-component-update',
+    '--disable-default-apps'
   ].join(' ');
 
   console.log('🚀 Menjalankan kiosk...');

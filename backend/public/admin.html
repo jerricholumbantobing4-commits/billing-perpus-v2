@@ -821,23 +821,25 @@
   }
 
   function reduceTime(pcId, reduceMinutes) {
-    const reason = prompt(`Kurangi ${reduceMinutes} menit karena alasan apa? (mengganggu kenyamanan, dll):`, 'Mengganggu kenyamanan');
-    if (reason !== null) {
-      socket.emit('reduce_time', { pcId, reduceMinutes, reason }, (res) => {
-        if (res && res.error) alert('Gagal mengurangi waktu: ' + res.message);
-      });
-    }
+  const reason = prompt(`Kurangi ${reduceMinutes} menit karena alasan apa?`, 'Mengganggu kenyamanan');
+  if (reason !== null) {
+    socket.emit('reduce_time', { pcId, reduceMinutes, reason }, (res) => {
+      if (res && res.error) alert('Gagal mengurangi waktu: ' + res.error);
+      else if (res && res.success) console.log('✅ Waktu dikurangi');
+    });
   }
+}
 
   function endSession(pcId) {
     if (confirm('Akhiri sesi ini?')) socket.emit('end_session', { pcId });
   }
 
   function pauseSession(pcId) {
-    socket.emit('pause_session', { pcId }, (res) => {
-      if (res && res.error) alert('Gagal Jeda: ' + res.message);
-    });
-  }
+  socket.emit('pause_session', { pcId }, (res) => {
+    if (res && res.error) alert('Gagal Jeda: ' + res.error);
+    else if (res && res.success) console.log('✅ Jeda berhasil');
+  });
+}
 
   function resumeSession(pcId) {
     socket.emit('resume_session', { pcId }, (res) => {
@@ -863,18 +865,18 @@
   }
 
   function submitMoveSession() {
-    const fromPcId = document.getElementById('moveFromPcId').value;
-    const toPcId = document.getElementById('moveTargetPc').value;
-    if (!toPcId) return alert('Pilih PC tujuan terlebih dahulu');
-    socket.emit('move_session', { fromPcId, toPcId }, (res) => {
-      if (res && res.error) {
-        alert('Gagal memindahkan: ' + res.message);
-      } else {
-        alert(res?.message || 'Berhasil dipindahkan');
-        moveModal.hide();
-      }
-    });
-  }
+  const fromPcId = document.getElementById('moveFromPcId').value;
+  const toPcId = document.getElementById('moveTargetPc').value;
+  if (!toPcId) return alert('Pilih PC tujuan terlebih dahulu');
+  socket.emit('move_session', { fromPcId, toPcId }, (res) => {
+    if (res && res.error) {
+      alert('Gagal memindahkan: ' + res.error);
+    } else {
+      alert(res?.message || 'Berhasil dipindahkan');
+      moveModal.hide();
+    }
+  });
+}
 
   function openChatModal(pcId, userName) {
     document.getElementById('chatPcId').value = pcId;

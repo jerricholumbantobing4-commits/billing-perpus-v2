@@ -28,7 +28,22 @@ async function getAllPCs() {
  * Ambil PC berdasarkan ID
  */
 async function getPCById(pcId) {
-  const [rows] = await pool.query('SELECT * FROM pcs WHERE id = ?', [pcId]);
+  const [rows] = await pool.query(`
+    SELECT 
+      id, 
+      CODE as code, 
+      location, 
+      STATUS as status, 
+      username as user_name,
+      purpose,
+      current_user_type,
+      current_duration_minutes,
+      current_start_time as start_time,
+      remaining_paused_seconds,
+      current_session_id
+    FROM pcs 
+    WHERE id = ?
+  `, [pcId]);
   return rows[0] || null;
 }
 
@@ -36,7 +51,22 @@ async function getPCById(pcId) {
  * Ambil PC berdasarkan kode (PC-01, PC-02, dll.)
  */
 async function getPCByCode(code) {
-  const [rows] = await pool.query('SELECT * FROM pcs WHERE CODE = ?', [code]);
+  const [rows] = await pool.query(`
+    SELECT 
+      id, 
+      CODE as code, 
+      location, 
+      STATUS as status, 
+      username as user_name,
+      purpose,
+      current_user_type,
+      current_duration_minutes,
+      current_start_time as start_time,
+      remaining_paused_seconds,
+      current_session_id
+    FROM pcs 
+    WHERE CODE = ?
+  `, [code]);
   return rows[0] || null;
 }
 
@@ -52,12 +82,35 @@ async function addPC(code, location) {
 }
 
 /**
- * Update PC
+ * Update PC — mapping nama field ke nama kolom database
  */
 async function updatePC(pcId, fields) {
+  // Mapping: nama kode → nama kolom database
+  const columnMap = {
+    'status': 'STATUS',
+    'STATUS': 'STATUS',
+    'username': 'username',
+    'user_name': 'username',
+    'purpose': 'purpose',
+    'current_user_type': 'current_user_type',
+    'current_duration_minutes': 'current_duration_minutes',
+    'current_start_time': 'current_start_time',
+    'start_time': 'current_start_time',
+    'remaining_paused_seconds': 'remaining_paused_seconds',
+    'current_session_id': 'current_session_id',
+    'code': 'CODE',
+    'CODE': 'CODE',
+    'location': 'location'
+  };
+
   const keys = Object.keys(fields);
   const values = Object.values(fields);
-  const setClause = keys.map(k => `${k} = ?`).join(', ');
+  
+  const setClause = keys.map(k => {
+    const col = columnMap[k] || k;
+    return `${col} = ?`;
+  }).join(', ');
+  
   values.push(pcId);
   
   await pool.query(`UPDATE pcs SET ${setClause} WHERE id = ?`, values);
