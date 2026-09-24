@@ -7,6 +7,30 @@ const timerService = require('./timerService');
 const { cleanStr } = require('../utils/cleanStr');
 
 /**
+ * Hitung sisa detik dari sebuah PC
+ */
+function calculateRemainingSeconds(pc) {
+  if (!pc) return 0;
+  
+  if (pc.status === 'paused') {
+    return Number(pc.remaining_paused_seconds) || 0;
+  }
+  
+  if (pc.status === 'in-use') {
+    if (!pc.start_time || !pc.current_duration_seconds) return 0;
+    
+    const startMs = new Date(pc.start_time).getTime();
+    const durationMs = Number(pc.current_duration_seconds) * 1000;
+    const elapsedMs = Date.now() - startMs;
+    const leftMs = durationMs - elapsedMs;
+    
+    return Math.max(0, Math.floor(leftMs / 1000));
+  }
+  
+  return 0;
+}
+
+/**
  * Mulai sesi baru
  */
 async function startSession({ pcId, userName, purpose, durationMinutes }) {
@@ -15,33 +39,32 @@ async function startSession({ pcId, userName, purpose, durationMinutes }) {
 
   if (!cleanUser) throw new Error('Nama user wajib diisi');
 
-  // Cek kuota harian
   const currentCount = await sessionModel.getTodaySessionCount(cleanUser);
   if (currentCount >= 2) {
     throw new Error(`Akses ditolak! ${cleanUser} sudah ${currentCount}x pakai hari ini (max 2).`);
   }
 
-  const durMin = Number(durationMinutes) > 0 ? Number(durationMinutes) : 60;
+  const durMin = Number(durationMinutes) > 0 ? Number(durationMinutes) : 120;
+  const durSec = durMin * 120;
 
-  // Update PC
+  const pcInfo = await pcModel.getPCById(pcId);
+  if (!pcInfo) throw new Error('PC tidak ditemukan');
+  
+  const sessionId = await sessionModel.createSession(pcInfo.code, cleanUser, cleanPurpose);
+
   await pcModel.updatePC(pcId, {
-    STATUS: 'in-use',
+    status: 'in-use',
     username: cleanUser,
     purpose: cleanPurpose,
     current_start_time: new Date(),
     current_duration_minutes: durMin,
-    remaining_paused_seconds: null
+    current_duration_seconds: durSec,
+    remaining_paused_seconds: null,
+    current_session_id: sessionId
   });
 
-  // Buat baris riwayat
-  const pc = await pcModel.getPCById(pcId);
-  const sessionId = await sessionModel.createSession(pc.code, cleanUser, cleanPurpose);
-  await pcModel.updatePC(pcId, { current_session_id: sessionId });
-
-  // Hapus dari antrean
   await queueModel.removeQueueByUser(cleanUser);
 
-  // Refresh cache & broadcast
   await cacheService.refreshCache();
   await timerService.broadcastPCs();
 
@@ -62,11 +85,12 @@ async function endSession(pcId) {
   }
 
   await pcModel.updatePC(pcId, {
-    STATUS: 'available',
+    status: 'available',
     username: null,
     purpose: null,
     current_start_time: null,
     current_duration_minutes: null,
+    current_duration_seconds: null,
     remaining_paused_seconds: null,
     current_session_id: null
   });
@@ -85,8 +109,10 @@ async function pauseSession(pcId) {
     throw new Error('PC tidak sedang aktif');
   }
 
-  const leftMs = (pc.current_duration_minutes * 60 * 1000) - (Date.now() - new Date(pc.current_start_time).getTime());
-  const leftSec = Math.max(0, Math.floor(leftMs / 1000));
+  const leftSec = calculateRemainingSeconds(pc);
+
+  console.log('[Pause] duration_seconds:', pc.current_duration_seconds);
+  console.log('[Pause] leftSec:', leftSec);
 
   await pcModel.updatePC(pcId, {
     status: 'paused',
@@ -94,7 +120,7 @@ async function pauseSession(pcId) {
   });
 
   await timerService.broadcastPCs();
-  return { success: true };
+  return { success: true, remaining_seconds: leftSec };
 }
 
 /**
@@ -107,11 +133,14 @@ async function resumeSession(pcId) {
   }
 
   const savedSec = Number(pc.remaining_paused_seconds) || 0;
-  const newDurMin = Math.max(1, Math.ceil(savedSec / 60));
+  const durMin = Math.ceil(savedSec / 60);
+
+  console.log('[Resume] savedSec:', savedSec, '| durMin:', durMin);
 
   await pcModel.updatePC(pcId, {
     status: 'in-use',
-    current_duration_minutes: newDurMin,
+    current_duration_minutes: durMin,
+    current_duration_seconds: savedSec,
     current_start_time: new Date(),
     remaining_paused_seconds: null
   });
@@ -125,18 +154,20 @@ async function resumeSession(pcId) {
  */
 async function extendTime(pcId, addMinutes) {
   const addMin = Number(addMinutes) || 0;
+  const addSec = addMin * 60;
   const pc = await pcModel.getPCById(pcId);
   if (!pc) throw new Error('PC tidak ditemukan');
 
   if (pc.status === 'paused') {
-    const addSec = addMin * 60;
     await pcModel.updatePC(pcId, {
-      remaining_paused_seconds: (pc.remaining_paused_seconds || 0) + addSec,
-      current_duration_minutes: (pc.current_duration_minutes || 0) + addMin
+      remaining_paused_seconds: (Number(pc.remaining_paused_seconds) || 0) + addSec,
+      current_duration_minutes: (Number(pc.current_duration_minutes) || 0) + addMin,
+      current_duration_seconds: (Number(pc.current_duration_seconds) || 0) + addSec
     });
   } else {
     await pcModel.updatePC(pcId, {
-      current_duration_minutes: (pc.current_duration_minutes || 0) + addMin
+      current_duration_minutes: (Number(pc.current_duration_minutes) || 0) + addMin,
+      current_duration_seconds: (Number(pc.current_duration_seconds) || 0) + addSec
     });
   }
 
@@ -149,17 +180,18 @@ async function extendTime(pcId, addMinutes) {
  */
 async function reduceTime(pcId, reduceMinutes, reason) {
   const redMin = Number(reduceMinutes) || 0;
+  const redSec = redMin * 60;
   const pc = await pcModel.getPCById(pcId);
   if (!pc) throw new Error('PC tidak ditemukan');
 
   if (pc.status === 'in-use') {
     await pcModel.updatePC(pcId, {
-      current_duration_minutes: Math.max(1, (pc.current_duration_minutes || 0) - redMin)
+      current_duration_minutes: Math.max(1, (Number(pc.current_duration_minutes) || 0) - redMin),
+      current_duration_seconds: Math.max(60, (Number(pc.current_duration_seconds) || 0) - redSec)
     });
   } else if (pc.status === 'paused') {
-    const newPausedSec = Math.max(0, (pc.remaining_paused_seconds || 0) - (redMin * 60));
     await pcModel.updatePC(pcId, {
-      remaining_paused_seconds: newPausedSec
+      remaining_paused_seconds: Math.max(0, (Number(pc.remaining_paused_seconds) || 0) - redSec)
     });
   } else {
     throw new Error('PC tidak sedang aktif/di-pause');
@@ -180,46 +212,40 @@ async function moveSession(fromPcId, toPcId) {
   if (fromPc.status !== 'in-use' && fromPc.status !== 'paused') throw new Error('PC asal tidak aktif');
   if (toPc.status !== 'available') throw new Error('PC tujuan tidak kosong');
 
-  // Hitung sisa
-  let remainingSeconds = 0;
-  if (fromPc.status === 'in-use') {
-    const leftMs = (fromPc.current_duration_minutes * 60 * 1000) - (Date.now() - new Date(fromPc.current_start_time).getTime());
-    remainingSeconds = Math.max(0, Math.floor(leftMs / 1000));
-  } else {
-    remainingSeconds = Number(fromPc.remaining_paused_seconds) || 0;
-  }
-  const remainingMinutes = Math.max(1, Math.ceil(remainingSeconds / 60));
+  const remainingSeconds = calculateRemainingSeconds(fromPc);
+  const remainingMinutes = Math.ceil(remainingSeconds / 60);
 
-  // Pindah ke PC tujuan
   if (fromPc.status === 'in-use') {
     await pcModel.updatePC(toPcId, {
-      STATUS: 'in-use',
-      username: fromPc.username,
+      status: 'in-use',
+      username: fromPc.user_name,
       purpose: fromPc.purpose,
       current_start_time: new Date(),
       current_duration_minutes: remainingMinutes,
+      current_duration_seconds: remainingSeconds,
       remaining_paused_seconds: null,
       current_session_id: fromPc.current_session_id
     });
   } else {
     await pcModel.updatePC(toPcId, {
-      STATUS: 'paused',
-      username: fromPc.username,
+      status: 'paused',
+      username: fromPc.user_name,
       purpose: fromPc.purpose,
       current_start_time: null,
       current_duration_minutes: remainingMinutes,
+      current_duration_seconds: remainingSeconds,
       remaining_paused_seconds: remainingSeconds,
       current_session_id: fromPc.current_session_id
     });
   }
 
-  // Kosongkan PC asal
   await pcModel.updatePC(fromPcId, {
-    STATUS: 'available',
+    status: 'available',
     username: null,
     purpose: null,
     current_start_time: null,
     current_duration_minutes: null,
+    current_duration_seconds: null,
     remaining_paused_seconds: null,
     current_session_id: null
   });
@@ -235,5 +261,6 @@ module.exports = {
   resumeSession,
   extendTime,
   reduceTime,
-  moveSession
+  moveSession,
+  calculateRemainingSeconds
 };

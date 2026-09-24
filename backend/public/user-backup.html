@@ -5,19 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Billing Perpus — PC User</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💻</text></svg>" id="favicon">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-
-<!-- ===== SOCKET.IO DENGAN FALLBACK LOKAL ===== -->
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-<script>
-  // Kalau CDN gagal, coba ambil dari server lokal (Node.js otomatis serve /socket.io/socket.io.js)
-  if (typeof io === 'undefined') {
-    console.warn('[Init] Socket.io CDN gagal, mencoba fallback lokal /socket.io/socket.io.js ...');
-    document.write('<script src="/socket.io/socket.io.js"><\/script>');
-  }
-</script>
-
 <style>
   :root{
     --bg-body: #0a0a0c;
@@ -55,7 +45,9 @@
     user-select: none;
     transition: background 0.15s ease;
   }
-  .header:hover { background: #16161c; }
+  .header:hover {
+    background: #16161c;
+  }
   .header-left { display: flex; align-items: center; gap: 10px; }
   .logo-box {
     width: 34px; height: 34px; background: var(--accent-green); border-radius: 8px;
@@ -117,20 +109,11 @@
   .status-pill.paused { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border-color: rgba(245, 158, 11, 0.2); }
   .status-pill.maintenance { background: rgba(139, 92, 246, 0.1); color: var(--accent-violet); border-color: rgba(139, 92, 246, 0.2); }
   .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
-
-  /* ===== TIMER UTAMA (DIPERKECIL) ===== */
   .timer-display {
-    font-family: var(--font-mono);
-    font-size: clamp(1.8rem, 4vw, 3rem);   /* <-- DIPERKECIL dari 3rem–6rem */
-    font-weight: 700;
-    line-height: 1;
-    color: var(--text-primary);
-    letter-spacing: -1px;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
-    margin: 8px 0;
+    font-family: var(--font-mono); font-size: clamp(3rem, 8vw, 6rem); font-weight: 700; line-height: 1;
+    color: var(--text-primary); letter-spacing: -2px; text-shadow: 0 0 30px rgba(255, 255, 255, 0.08); margin: 5px 0;
   }
   .timer-display.dim { color: var(--text-muted); text-shadow: none; }
-
   .headline { font-family: var(--font-display); font-size: 1.8rem; font-weight: 600; color: var(--text-primary); }
   .subline { color: var(--text-secondary); font-size: 0.9rem; max-width: 450px; margin-top: 8px; }
   .info-grid {
@@ -215,7 +198,10 @@
     pointer-events: none;
     transition: opacity 0.3s ease;
   }
-  .force-modal-overlay.show { opacity: 1; pointer-events: auto; }
+  .force-modal-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
   .force-modal {
     background: var(--bg-panel);
     border: 2px solid var(--accent-green);
@@ -285,7 +271,7 @@
     box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
   }
 
-  /* ================= TOMBOL HIDE & POPOUT ================= */
+  /* ================= TOMBOL HIDE WIDGET ================= */
   .btn-hide-widget {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
@@ -302,25 +288,10 @@
     margin: 0 8px;
     font-family: var(--font-body);
   }
-  .btn-hide-widget:hover { background: rgba(239, 68, 68, 0.2); color: #fff; }
-
-  .btn-popout-widget {
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    color: var(--accent-green);
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 8px;
-    font-family: var(--font-body);
+  .btn-hide-widget:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fff;
   }
-  .btn-popout-widget:hover { background: rgba(34, 197, 94, 0.2); color: #fff; }
 
   .center-msg {
     height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -394,9 +365,8 @@
       letter-spacing: 0.5px;
     }
 
-    /* ===== TIMER DI WIDGET KECIL (DIPERKECIL) ===== */
     .timer-display {
-      font-size: 1.6rem;   /* <-- DIPERKECIL dari 2.2rem */
+      font-size: 2.2rem;
       letter-spacing: -1px;
       margin: 2px 0;
     }
@@ -405,104 +375,6 @@
       font-size: 1.1rem;
       margin-bottom: 2px;
     }
-  }
-
-  /* ================= STYLE UNTUK PiP WINDOW ================= */
-  .pip-compact {
-    background: var(--bg-body);
-    color: var(--text-primary);
-    font-family: var(--font-body);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    height: 100vh;
-    box-sizing: border-box;
-  }
-  .pip-compact .pip-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border-color);
-  }
-  .pip-compact .pip-pc {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--accent-green);
-    background: rgba(34, 197, 94, 0.1);
-    padding: 3px 10px;
-    border-radius: 6px;
-  }
-  .pip-compact .pip-status {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 6px;
-  }
-  .pip-compact .pip-status.available { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
-  .pip-compact .pip-status.in-use { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
-  .pip-compact .pip-status.paused { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
-  .pip-compact .pip-status.maintenance { background: rgba(139, 92, 246, 0.15); color: var(--accent-violet); }
-
-  /* ===== TIMER DI PiP (DIPERKECIL) ===== */
-  .pip-compact .pip-timer {
-    font-family: var(--font-mono);
-    font-size: 2.2rem;   /* <-- DIPERKECIL dari 3.2rem */
-    font-weight: 700;
-    color: var(--text-primary);
-    text-align: center;
-    letter-spacing: -1.5px;
-    line-height: 1;
-    margin: 8px 0;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-  }
-  .pip-compact .pip-timer.dim {
-    color: var(--text-muted);
-    text-shadow: none;
-  }
-
-  .pip-compact .pip-user {
-    text-align: center;
-    font-size: 1rem;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-  }
-  .pip-compact .pip-user strong {
-    color: var(--text-primary);
-    font-weight: 700;
-  }
-
-  .pip-compact .pip-info {
-    display: flex;
-    justify-content: space-around;
-    padding: 10px 0;
-    border-top: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
-  }
-  .pip-compact .pip-info-item {
-    text-align: center;
-  }
-  .pip-compact .pip-info-item .lbl {
-    font-size: 0.6rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .pip-compact .pip-info-item .val {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-top: 2px;
-  }
-
-  .pip-compact .pip-footer {
-    text-align: center;
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    margin-top: auto;
   }
 </style>
 </head>
@@ -523,43 +395,25 @@
 <div id="root"></div>
 
 <script>
-  // ================= GUARD: CEK SOCKET.IO =================
-  let socket;
-  if (typeof io === 'undefined') {
-    console.error('[FATAL] Socket.io gagal dimuat (CDN & lokal). Menampilkan error page.');
-    document.addEventListener('DOMContentLoaded', () => {
-      const rootEl = document.getElementById('root');
-      if (rootEl) {
-        rootEl.innerHTML = `
-          <div class="center-msg" style="padding:24px;">
-            <div style="font-size:4rem; margin-bottom:16px;">⚠️</div>
-            <h1>Koneksi Gagal</h1>
-            <p>Library <strong>Socket.io</strong> tidak dapat dimuat.</p>
-            <p style="font-size:0.8rem; color:var(--text-muted); max-width:420px;">
-              Pastikan server billing (Node.js) sedang berjalan, dan koneksi internet tersedia.
-            </p>
-            <button class="btn-primary" onclick="location.reload()">🔄 Coba Lagi</button>
-          </div>`;
-      }
-    });
-    // Dummy socket supaya sisa kode tidak crash
-    socket = { connected: false, on: () => {}, emit: () => {}, disconnect: () => {} };
-  } else {
-    socket = io('/', { transports: ['websocket', 'polling'] });
-  }
-
+  const socket = io('/', { transports: ['websocket', 'polling'] });
   const root = document.getElementById('root');
   
+  // ================= DETEKSI ELECTRON =================
   const isElectron = typeof window.electronAPI !== 'undefined';
   console.log('[Init] Running in Electron:', isElectron);
 
   let allPCs = [];
   let hasData = false;
 
+  // ================= AMBIL PC_CODE DARI URL SAJA =================
+  // Jangan pakai localStorage — supaya widget selalu sesuai nomor PC-nya
   let myCode = new URLSearchParams(location.search).get('pc') || null;
   console.log('[Init] myCode dari URL:', myCode);
+  console.log('[Init] URL Search:', location.search);
 
+  // Auto-fix: kalau ada localStorage lama, hapus
   if (localStorage.getItem('kioskPcCode')) {
+    console.log('[Init] Menghapus localStorage lama:', localStorage.getItem('kioskPcCode'));
     localStorage.removeItem('kioskPcCode');
   }
 
@@ -571,6 +425,7 @@
   // ================= FUNGSI HIDE WIDGET =================
   function hideWidget() {
     if (isElectron && window.electronAPI) {
+      console.log('[Hide] User hides widget');
       window.electronAPI.hideWidget();
     }
   }
@@ -580,6 +435,7 @@
     if (!isElectron) return;
     if (e.target.closest('.header')) {
       if (e.target.closest('button') || e.target.closest('a')) return;
+      console.log('[DblClick] Hiding widget from header double-click');
       window.electronAPI.hideWidget();
     }
   });
@@ -622,7 +478,7 @@
     } catch (e) {}
   }
 
-  function sendDesktopNotification(title, message, icon = '💻') {
+  function sendDesktopNotification(title, message, icon = '⚠️') {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
         const notification = new Notification(icon + ' ' + title, {
@@ -665,6 +521,7 @@
     }
   }
 
+  // ================= FUNGSI POPUP PAKSA =================
   function showForceModal(toast) {
     const iconMap = {
       'danger': 'bi-exclamation-triangle-fill',
@@ -680,14 +537,17 @@
     modal.className = 'force-modal ' + (toast.variant || 'info');
     
     document.getElementById('forceModalOverlay').classList.add('show');
+    
     playNotificationSound();
   }
 
   function closeForceModal() {
     document.getElementById('forceModalOverlay').classList.remove('show');
+    
     if (isElectron && window.electronAPI) {
       window.electronAPI.dismissNotification();
     }
+    
     if (pendingForceModals.length > 0) {
       setTimeout(() => {
         const next = pendingForceModals.shift();
@@ -696,8 +556,10 @@
     }
   }
 
+  // ================= FUNGSI UTAMA NOTIFIKASI =================
   function triggerNotification(toast) {
     playNotificationSound();
+    
     const iconMap = { 'danger': '⚠️', 'success': '✅', 'warn': '⏸️', 'info': 'ℹ️' };
     sendDesktopNotification(
       toast.title || 'Notifikasi', 
@@ -708,7 +570,10 @@
     if (isElectron) {
       showForceModal(toast);
       if (window.electronAPI) {
-        window.electronAPI.triggerNotification({ title: toast.title, message: toast.message });
+        window.electronAPI.triggerNotification({
+          title: toast.title,
+          message: toast.message
+        });
       }
       return;
     }
@@ -732,6 +597,7 @@
     if (!document.hidden) {
       stopTitleBlink();
       changeFavicon(false);
+      
       if (pendingForceModals.length > 0) {
         const firstModal = pendingForceModals.shift();
         setTimeout(() => showForceModal(firstModal), 300);
@@ -856,150 +722,13 @@
     lastKnownDurationMinutes = curDur;
   }
 
-  // ================= POP-OUT WIDGET (PiP) =================
-  let pipWindow = null;
-
-  async function popOutWidget() {
-    if (!('documentPictureInPicture' in window)) {
-      alert('Fitur pop-out hanya tersedia di Chrome 116+.\nUpdate Chrome Anda untuk menggunakan fitur ini.');
-      return;
-    }
-
-    if (pipWindow && !pipWindow.closed) {
-      pipWindow.focus();
-      return;
-    }
-
-    const pc = myPC();
-    if (!pc) {
-      alert('Belum ada PC yang dipilih.');
-      return;
-    }
-
-    try {
-      pipWindow = await documentPictureInPicture.requestWindow({
-        width: 420,
-        height: 480,
-      });
-
-      [...document.styleSheets].forEach((styleSheet) => {
-        try {
-          const cssRules = [...styleSheet.cssRules].map(rule => rule.cssText).join('');
-          const style = document.createElement('style');
-          style.textContent = cssRules;
-          pipWindow.document.head.appendChild(style);
-        } catch (e) {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.type = styleSheet.type;
-          link.media = styleSheet.media;
-          link.href = styleSheet.href;
-          pipWindow.document.head.appendChild(link);
-        }
-      });
-
-      const fonts = pipWindow.document.createElement('link');
-      fonts.rel = 'stylesheet';
-      fonts.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap';
-      pipWindow.document.head.appendChild(fonts);
-
-      const icons = pipWindow.document.createElement('link');
-      icons.rel = 'stylesheet';
-      icons.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css';
-      pipWindow.document.head.appendChild(icons);
-
-      buildPipContent();
-
-      pipWindow.addEventListener('pagehide', () => {
-        pipWindow = null;
-      });
-
-      console.log('Pop-out aktif. Widget akan selalu di atas.');
-    } catch (e) {
-      console.error('Pop-out error:', e);
-      alert('Gagal membuka pop-out: ' + e.message);
-    }
-  }
-
-  function buildPipContent() {
-    if (!pipWindow || pipWindow.closed) return;
-    const pc = myPC();
-    if (!pc) return;
-
-    const isSessionActive = pc.status === 'in-use' || pc.status === 'paused';
-    const userName = isSessionActive ? (pc.user_name || '-') : '-';
-    const sessionCount = pc.today_sessions !== undefined ? pc.today_sessions
-      : (pc.user_session_count !== undefined ? pc.user_session_count : 0);
-    let saldo = '-';
-    if (isSessionActive && pc.saldo_hours !== undefined && pc.saldo_hours !== null) {
-      const h = parseFloat(pc.saldo_hours);
-      if (!isNaN(h)) saldo = (Number.isInteger(h) ? h : h.toFixed(1)) + ' Jam';
-    }
-    const timerStr = isSessionActive ? parseServerTime(pc.formatted_time) : '--:--:--';
-
-    const statusInfo = {
-      'available': { text: 'PC KOSONG', class: 'available' },
-      'in-use': { text: 'SEDANG DIGUNAKAN', class: 'in-use' },
-      'paused': { text: 'SESI DIJEDA', class: 'paused' },
-      'maintenance': { text: 'MAINTENANCE', class: 'maintenance' }
-    }[pc.status] || { text: 'PC KOSONG', class: 'available' };
-
-    pipWindow.document.body.style.cssText = `
-      margin: 0;
-      padding: 0;
-      background: var(--bg-body);
-      color: var(--text-primary);
-      font-family: var(--font-body);
-      overflow: hidden;
-    `;
-
-    pipWindow.document.body.innerHTML = `
-      <div class="pip-compact">
-        <div class="pip-header">
-          <div class="pip-pc">${pc.code}</div>
-          <div class="pip-status ${statusInfo.class}">${statusInfo.text}</div>
-        </div>
-
-        <div class="pip-timer ${!isSessionActive ? 'dim' : ''}">${timerStr}</div>
-
-        <div class="pip-user">
-          Pengguna: <strong>${userName}</strong>
-        </div>
-
-        <div class="pip-info">
-          <div class="pip-info-item">
-            <div class="lbl">Saldo</div>
-            <div class="val">${saldo}</div>
-          </div>
-          <div class="pip-info-item">
-            <div class="lbl">Sesi Ke</div>
-            <div class="val">${sessionCount} / 2</div>
-          </div>
-          <div class="pip-info-item">
-            <div class="lbl">Lokasi</div>
-            <div class="val">${pc.location || '-'}</div>
-          </div>
-        </div>
-
-        <div class="pip-footer">
-          Billing Perpus — PC ${pc.code}
-        </div>
-      </div>
-    `;
-  }
-
-  function updatePipContent() {
-    if (!pipWindow || pipWindow.closed) return;
-    buildPipContent();
-  }
-
-  // ================= RENDER =================
   function render() {
     if (!myCode) return renderSelector();
     if (!hasData) return renderLoading();
 
     const pc = allPCs.find(p => p.code === myCode);
     if (!pc) {
+      console.log('[Render] PC tidak ditemukan di database:', myCode);
       myCode = null;
       localStorage.removeItem('kioskPcCode');
       return renderSelector();
@@ -1065,14 +794,9 @@
               <div class="brand-sub">Jl. Cikini Raya No. 73, Cikini, Kecamatan Menteng, Jakarta Pusat</div>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <button class="btn-popout-widget" onclick="popOutWidget()" title="Pop-out widget (Always on Top)">
-              <i class="bi bi-pip-fill"></i> Pop-out
-            </button>
-            <button class="btn-hide-widget" onclick="hideWidget()" title="Sembunyikan widget">
-              <i class="bi bi-eye-slash-fill"></i> Hide
-            </button>
-          </div>
+          <button class="btn-hide-widget" onclick="hideWidget()" title="Sembunyikan widget">
+            <i class="bi bi-eye-slash-fill"></i> Hide
+          </button>
           <div class="header-right">
             <div class="status-badge ${socket.connected ? '' : 'off'}">
               <span class="dot"></span> ${socket.connected ? 'Connected' : 'Disconnected'}
@@ -1138,8 +862,6 @@
         </div>
       </div>
     `;
-
-    updatePipContent();
   }
 
   function renderLoading() {

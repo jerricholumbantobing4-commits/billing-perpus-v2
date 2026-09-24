@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Billing Perpus — Dashboard</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 <style>
-  :root {
+    :root {
     --bg: #eef2f7;
     --surface: #ffffff;
     --surface-hover: #f8fafc;
@@ -33,18 +33,6 @@
     --font-body: 'Inter', -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
-
-  * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-family: var(--font-body);
-    font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-  }
-
   /* ================= SIDEBAR ================= */
   .sidebar {
     width: 240px;
@@ -56,14 +44,20 @@
     display: flex;
     flex-direction: column;
     z-index: 100;
+    transition: width 0.2s ease;
   }
+  .sidebar.collapsed { width: 64px; }
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .brand-text,
+  .sidebar.collapsed .sidebar-foot { display: none; }
 
   .sidebar-brand {
-    padding: 20px;
+    padding: 20px 20px 16px;
     display: flex;
     align-items: center;
     gap: 10px;
     border-bottom: 1px solid var(--border);
+    min-height: 64px;
   }
   .brand-mark {
     width: 32px; height: 32px;
@@ -120,6 +114,7 @@
     text-align: center;
     flex-shrink: 0;
   }
+  .nav-label { white-space: nowrap; }
 
   .sidebar-foot {
     padding: 16px 20px;
@@ -132,8 +127,10 @@
   .main {
     margin-left: 240px;
     padding: 24px 32px 60px;
+    transition: margin-left 0.2s ease;
     min-height: 100vh;
   }
+  .sidebar.collapsed ~ .main { margin-left: 64px; }
 
   /* ================= TOPBAR ================= */
   .topbar {
@@ -184,14 +181,6 @@
     margin-top: 2px;
   }
 
-  /* ================= PAGE SECTIONS ================= */
-  .page-section {
-    display: none;
-  }
-  .page-section.active {
-    display: block;
-  }
-
   /* ================= BUTTONS ================= */
   .btn {
     display: inline-flex;
@@ -221,7 +210,8 @@
     color: #fff;
   }
   .btn-primary:hover {
-    background: #1d4ed8;
+    background: #425a75;
+    border-color: #425a75;
     color: #fff;
   }
   .btn-success {
@@ -230,8 +220,8 @@
     color: #fff;
   }
   .btn-success:hover {
-    background: #15803d;
-    color: #fff;
+    background: #5a8568;
+    border-color: #5a8568;
   }
   .btn-danger {
     background: var(--danger);
@@ -239,25 +229,17 @@
     color: #fff;
   }
   .btn-danger:hover {
-    background: #b91c1c;
-    color: #fff;
+    background: #b56565;
+    border-color: #b56565;
   }
   .btn-warning {
     background: var(--warning);
     border-color: var(--warning);
     color: #fff;
   }
-  .btn-warning:hover {
-    background: #b45309;
-    color: #fff;
-  }
   .btn-sm {
     padding: 6px 10px;
     font-size: 12px;
-  }
-  .btn-icon-only {
-    padding: 6px 10px;
-    min-width: 36px;
   }
 
   /* ================= STATS ================= */
@@ -326,6 +308,7 @@
     font-family: var(--font-body);
     font-size: 13px;
     outline: none;
+    transition: border-color 0.15s;
   }
   .search-box input:focus {
     border-color: var(--accent);
@@ -379,8 +362,10 @@
   }
   .pc-card:hover {
     border-color: var(--border-strong);
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 2px 8px rgba(31, 41, 55, 0.04);
   }
+
+  /* Status strip di kiri */
   .pc-card::before {
     content: '';
     position: absolute;
@@ -510,6 +495,7 @@
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
+    transition: all 0.15s;
     font-family: var(--font-body);
   }
   .pagination button:hover:not(:disabled) {
@@ -526,55 +512,7 @@
     cursor: not-allowed;
   }
 
-  /* ================= TABLE ================= */
-  .table-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-  .table-card table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  .table-card thead th {
-    background: var(--bg);
-    padding: 12px 16px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid var(--border);
-  }
-  .table-card tbody td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-primary);
-  }
-  .table-card tbody tr:last-child td {
-    border-bottom: none;
-  }
-  .table-card tbody tr:hover {
-    background: var(--surface-hover);
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .badge.success { background: var(--success-soft); color: var(--success); }
-  .badge.danger { background: var(--danger-soft); color: var(--danger); }
-  .badge.warning { background: var(--warning-soft); color: var(--warning); }
-  .badge.info { background: var(--info-soft); color: var(--info); }
-  .badge.neutral { background: var(--bg); color: var(--text-secondary); }
-
-  /* ================= EMPTY ================= */
+  /* ================= EMPTY STATE ================= */
   .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -590,32 +528,16 @@
     display: block;
     margin-bottom: 12px;
   }
-
-  /* ================= CARD SURFACE ================= */
-  .surface-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 16px;
-  }
-  .surface-title {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .surface-title i {
-    color: var(--accent);
+  .empty-state p {
+    margin: 0;
+    font-size: 13px;
   }
 
   /* ================= MODALS ================= */
   .modal-content {
     border: none;
     border-radius: var(--radius);
-    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
+    box-shadow: 0 20px 60px rgba(31, 41, 55, 0.15);
   }
   .modal-header {
     border-bottom: 1px solid var(--border);
@@ -648,6 +570,7 @@
     font-family: var(--font-body);
     font-size: 13px;
     outline: none;
+    transition: border-color 0.15s;
   }
   .form-control:focus, .form-select:focus {
     border-color: var(--accent);
@@ -656,11 +579,22 @@
 
   /* ================= RESPONSIVE ================= */
   @media (max-width: 768px) {
-    .sidebar { transform: translateX(-100%); transition: transform 0.2s; }
+    .sidebar { transform: translateX(-100%); }
     .sidebar.mobile-open { transform: translateX(0); }
     .main { margin-left: 0; padding: 16px; }
+    .sidebar.collapsed ~ .main { margin-left: 0; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
+
+  /* Sidebar backdrop */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 41, 55, 0.3);
+    z-index: 99;
+  }
+  .sidebar-backdrop.show { display: block; }
 </style>
 </head>
 <body>
@@ -676,37 +610,45 @@
   </div>
 
   <nav class="sidebar-nav">
-    <a class="nav-item active" data-page="monitoring" onclick="switchPage('monitoring', this); return false;">
+    <a class="nav-item active" data-page="monitoring">
       <i class="bi bi-grid-1x2"></i>
-      <span>Monitoring PC</span>
+      <span class="nav-label">Monitoring PC</span>
     </a>
-    <a class="nav-item" data-page="queue" onclick="switchPage('queue', this); return false;">
+    <a class="nav-item" data-page="queue">
       <i class="bi bi-hourglass-split"></i>
-      <span>Antrean</span>
+      <span class="nav-label">Antrean</span>
     </a>
-    <a class="nav-item" data-page="users" onclick="switchPage('users', this); return false;">
+    <a class="nav-item" data-page="users">
       <i class="bi bi-people"></i>
-      <span>Kelola User</span>
+      <span class="nav-label">Kelola User</span>
     </a>
-    <a class="nav-item" data-page="history" onclick="switchPage('history', this); return false;">
+    <a class="nav-item" data-page="history">
       <i class="bi bi-clock-history"></i>
-      <span>Riwayat Sesi</span>
+      <span class="nav-label">Riwayat Sesi</span>
     </a>
-    <a class="nav-item" data-page="settings" onclick="switchPage('settings', this); return false;">
+    <a class="nav-item" data-page="settings">
       <i class="bi bi-gear"></i>
-      <span>Pengaturan</span>
+      <span class="nav-label">Pengaturan</span>
     </a>
   </nav>
 
   <div class="sidebar-foot">
-    <i class="bi bi-shield-check me-1"></i> V.2.0 — SMKN 40
+    <i class="bi bi-shield-check me-1"></i>
+    V.2.0 — SMKN 40
   </div>
 </aside>
 
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
 <!-- Main Content -->
-<main class="main">
+<main class="main" id="main">
+
+  <!-- Topbar -->
   <div class="topbar">
     <div class="topbar-left">
+      <button class="btn-icon d-md-none" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+      </button>
       <div>
         <h1 class="page-title" id="pageTitle">Dashboard Monitoring</h1>
         <div class="page-sub" id="pageSub">Pantau status unit PC secara real-time</div>
@@ -722,185 +664,63 @@
     </div>
   </div>
 
-  <!-- PAGE 1: MONITORING -->
-  <div id="page-monitoring" class="page-section active">
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon neutral"><i class="bi bi-pc-display"></i></div>
-        <div>
-          <div class="stat-num" id="statTotal">0</div>
-          <div class="stat-label">Total Unit</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon success"><i class="bi bi-check-circle"></i></div>
-        <div>
-          <div class="stat-num" id="statAvailable">0</div>
-          <div class="stat-label">Kosong</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon danger"><i class="bi bi-person-fill"></i></div>
-        <div>
-          <div class="stat-num" id="statInUse">0</div>
-          <div class="stat-label">Dipakai</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon warning"><i class="bi bi-pause-circle"></i></div>
-        <div>
-          <div class="stat-num" id="statPaused">0</div>
-          <div class="stat-label">Jeda / Maintenance</div>
-        </div>
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon neutral"><i class="bi bi-pc-display"></i></div>
+      <div>
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">Total Unit</div>
       </div>
     </div>
-
-    <div class="toolbar">
-      <div class="search-box">
-        <i class="bi bi-search"></i>
-        <input type="text" id="searchInput" placeholder="Cari kode PC atau nama user..." oninput="applyFilter()">
-      </div>
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Semua</button>
-      <button class="filter-btn" data-filter="available" onclick="setFilter('available', this)">Kosong</button>
-      <button class="filter-btn" data-filter="in-use" onclick="setFilter('in-use', this)">Dipakai</button>
-      <button class="filter-btn" data-filter="paused" onclick="setFilter('paused', this)">Jeda</button>
-      <button class="btn btn-primary" onclick="openAddPCModal()">
-        <i class="bi bi-plus-lg"></i> Tambah PC
-      </button>
-    </div>
-
-    <div class="pc-grid" id="pcGrid"></div>
-    <div class="pagination-bar" id="paginationBar"></div>
-  </div>
-
-  <!-- PAGE 2: ANTREAN -->
-  <div id="page-queue" class="page-section">
-    <div class="surface-card">
-      <div class="surface-title"><i class="bi bi-person-plus"></i> Tambah ke Antrean</div>
-      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px;">
-        <input type="text" id="queueUserName" class="form-control" placeholder="Nama pengguna...">
-        <select id="queuePurpose" class="form-select">
-          <option value="kawan perpus">Kawan Perpus</option>
-          <option value="kawan perpus nambah">Kawan Perpus Nambah</option>
-          <option value="tambah 5 menit">Tambah 5 Menit</option>
-        </select>
-        <button class="btn btn-success" onclick="addQueue()">
-          <i class="bi bi-hourglass-split"></i> Antre
-        </button>
+    <div class="stat-card">
+      <div class="stat-icon success"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-num" id="statAvailable">0</div>
+        <div class="stat-label">Kosong</div>
       </div>
     </div>
-
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 50px;">No</th>
-            <th>Nama</th>
-            <th>Jenis Pengguna</th>
-            <th>Waktu Masuk</th>
-            <th style="width: 80px; text-align: right;">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="queueTableBody">
-          <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
-            <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
-            Belum ada antrean
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- PAGE 3: KELOLA USER -->
-  <div id="page-users" class="page-section">
-    <div class="surface-card">
-      <div class="surface-title"><i class="bi bi-sliders"></i> CRUD / Reset Kuota User</div>
-      <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
-        Reset kuota user yang sudah mencapai batas 2x pakai per hari.
-      </p>
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1.5fr; gap: 8px;">
-        <input type="text" id="crudOldName" class="form-control" placeholder="Nama Lama (opsional)">
-        <input type="text" id="crudNewName" class="form-control" placeholder="Nama Target">
-        <input type="number" id="crudNewCount" class="form-control" placeholder="Jumlah Sesi" min="0" max="2">
-        <button class="btn btn-warning" onclick="submitCrudQuota()">
-          <i class="bi bi-save"></i> Simpan Kuota
-        </button>
+    <div class="stat-card">
+      <div class="stat-icon danger"><i class="bi bi-person-fill"></i></div>
+      <div>
+        <div class="stat-num" id="statInUse">0</div>
+        <div class="stat-label">Dipakai</div>
       </div>
     </div>
-
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Total Pakai Hari Ini</th>
-            <th>Status Kuota</th>
-            <th style="text-align: right;">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="usersTableBody">
-          <tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">
-            <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
-            Belum ada aktivitas hari ini
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- PAGE 4: RIWAYAT -->
-  <div id="page-history" class="page-section">
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Kode PC</th>
-            <th>Username</th>
-            <th>Jenis</th>
-            <th>Waktu Mulai</th>
-            <th>Waktu Selesai</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="historyTableBody">
-          <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
-            <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
-            Belum ada riwayat sesi
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- PAGE 5: PENGATURAN -->
-  <div id="page-settings" class="page-section">
-    <div class="surface-card">
-      <div class="surface-title"><i class="bi bi-gear"></i> Pengaturan Sistem</div>
-      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-secondary);">
-        <div>
-          <strong style="color: var(--text-primary);">Maksimal Pakai per Hari:</strong>
-          <span> 2 kali per user</span>
-        </div>
-        <div>
-          <strong style="color: var(--text-primary);">Durasi Default:</strong>
-          <span> 60 menit (1 jam)</span>
-        </div>
-        <div>
-          <strong style="color: var(--text-primary);">Auto-Reset Kuota:</strong>
-          <span> Setiap hari jam 00:00 (otomatis)</span>
-        </div>
-        <div>
-          <strong style="color: var(--text-primary);">Versi:</strong>
-          <span> V.2.0 — SMKN 40 Jakarta</span>
-        </div>
+    <div class="stat-card">
+      <div class="stat-icon warning"><i class="bi bi-pause-circle"></i></div>
+      <div>
+        <div class="stat-num" id="statPaused">0</div>
+        <div class="stat-label">Jeda / Maintenance</div>
       </div>
     </div>
   </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" id="searchInput" placeholder="Cari kode PC atau nama user..." oninput="applyFilter()">
+    </div>
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Semua</button>
+    <button class="filter-btn" data-filter="available" onclick="setFilter('available', this)">Kosong</button>
+    <button class="filter-btn" data-filter="in-use" onclick="setFilter('in-use', this)">Dipakai</button>
+    <button class="filter-btn" data-filter="paused" onclick="setFilter('paused', this)">Jeda</button>
+    <button class="btn btn-primary" onclick="openAddPCModal()">
+      <i class="bi bi-plus-lg"></i> Tambah PC
+    </button>
+  </div>
+
+  <!-- PC Grid -->
+  <div class="pc-grid" id="pcGrid"></div>
+
+  <!-- Pagination -->
+  <div class="pagination-bar" id="paginationBar"></div>
 </main>
 
 <!-- ================= MODALS ================= -->
 
+<!-- Modal Start Session -->
 <div class="modal fade" id="startModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -924,7 +744,7 @@
         </div>
         <div class="mb-1">
           <label class="form-label">Durasi (Menit)</label>
-          <input type="number" id="modalDuration" class="form-control" placeholder="Default: 120" min="1">
+          <input type="number" id="modalDuration" class="form-control" placeholder="Default: 60" min="1">
         </div>
       </div>
       <div class="modal-footer">
@@ -937,6 +757,7 @@
   </div>
 </div>
 
+<!-- Modal Tambah PC -->
 <div class="modal fade" id="addPCModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -964,6 +785,7 @@
   </div>
 </div>
 
+<!-- Modal Waktu -->
 <div class="modal fade" id="extendModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -985,13 +807,14 @@
       <div class="modal-footer">
         <button class="btn" data-bs-dismiss="modal">Batal</button>
         <button class="btn btn-primary" onclick="submitExtend()">
-          <i class="bi bi-plus-lg"></i> Tambah
+          <i class="bi bi-plus-lg"></i> Tambah Waktu
         </button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Modal Pindah PC -->
 <div class="modal fade" id="moveModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -1014,6 +837,7 @@
   </div>
 </div>
 
+<!-- Modal Chat -->
 <div class="modal fade" id="chatModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -1024,7 +848,7 @@
       <div class="modal-body">
         <input type="hidden" id="chatPcId">
         <label class="form-label">Pesan</label>
-        <textarea id="chatMessage" class="form-control" rows="3" placeholder="Tulis pesan..."></textarea>
+        <textarea id="chatMessage" class="form-control" rows="3" placeholder="Tulis pesan untuk user..."></textarea>
       </div>
       <div class="modal-footer">
         <button class="btn" data-bs-dismiss="modal">Tutup</button>
@@ -1052,53 +876,39 @@
   const moveModal = new bootstrap.Modal(document.getElementById('moveModal'));
   const chatModal = new bootstrap.Modal(document.getElementById('chatModal'));
 
-  // ================= PAGE NAVIGATION =================
-  function switchPage(pageId, el) {
-    // Hide semua halaman
-    document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
-    // Show yang aktif
-    document.getElementById('page-' + pageId).classList.add('active');
-
-    // Update active nav
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    el.classList.add('active');
-
-    // Update title
-    const titles = {
-      monitoring: ['Dashboard Monitoring', 'Pantau status unit PC secara real-time'],
-      queue: ['Antrean PC', 'Kelola antrean pengguna'],
-      users: ['Kelola User', 'CRUD user dan kuota harian'],
-      history: ['Riwayat Sesi', '100 sesi terakhir'],
-      settings: ['Pengaturan', 'Konfigurasi sistem billing']
-    };
-    const t = titles[pageId] || ['Dashboard', ''];
-    document.getElementById('pageTitle').textContent = t[0];
-    document.getElementById('pageSub').textContent = t[1];
-
-    // Load data saat ganti halaman
-    if (pageId === 'queue') loadQueue();
-    if (pageId === 'users') loadDailyActivity();
-    if (pageId === 'history') loadHistory();
-  }
-
   // ================= SOCKET =================
   socket.on('connect', () => console.log('Connected:', socket.id));
-  socket.on('init_pcs', (data) => { allPCs = data || []; applyFilter(); updateStats(); });
-  socket.on('update_pcs', (data) => { allPCs = data || []; applyFilter(); updateStats(); });
-  socket.on('broadcast_queue', renderQueue);
 
-  // ================= MONITORING =================
+  socket.on('init_pcs', (data) => {
+    allPCs = data || [];
+    applyFilter();
+    updateStats();
+  });
+
+  socket.on('update_pcs', (data) => {
+    allPCs = data || [];
+    applyFilter();
+    updateStats();
+  });
+
+  // ================= RENDER =================
   function applyFilter() {
     const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+
     filteredPCs = allPCs.filter(pc => {
+      // Filter status
       if (currentFilter !== 'all' && pc.status !== currentFilter) return false;
+
+      // Filter search
       if (search) {
         const code = (pc.code || '').toLowerCase();
         const user = (pc.user_name || '').toLowerCase();
         if (!code.includes(search) && !user.includes(search)) return false;
       }
+
       return true;
     });
+
     currentPage = 1;
     renderGrid();
   }
@@ -1111,10 +921,15 @@
   }
 
   function updateStats() {
-    document.getElementById('statTotal').textContent = allPCs.length;
-    document.getElementById('statAvailable').textContent = allPCs.filter(p => p.status === 'available').length;
-    document.getElementById('statInUse').textContent = allPCs.filter(p => p.status === 'in-use').length;
-    document.getElementById('statPaused').textContent = allPCs.filter(p => p.status === 'paused' || p.status === 'maintenance').length;
+    const total = allPCs.length;
+    const available = allPCs.filter(p => p.status === 'available').length;
+    const inUse = allPCs.filter(p => p.status === 'in-use').length;
+    const paused = allPCs.filter(p => p.status === 'paused' || p.status === 'maintenance').length;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statAvailable').textContent = available;
+    document.getElementById('statInUse').textContent = inUse;
+    document.getElementById('statPaused').textContent = paused;
   }
 
   function renderGrid() {
@@ -1132,13 +947,15 @@
     }
 
     const startIdx = (currentPage - 1) * PER_PAGE;
-    const pageItems = filteredPCs.slice(startIdx, startIdx + PER_PAGE);
+    const endIdx = startIdx + PER_PAGE;
+    const pageItems = filteredPCs.slice(startIdx, endIdx);
+
     grid.innerHTML = pageItems.map(pc => renderCard(pc)).join('');
     renderPagination(total);
   }
 
   function renderCard(pc) {
-    const statusKey = pc.status;
+    const statusKey = pc.status; // 'available', 'in-use', 'paused', 'maintenance'
     const statusText = {
       'available': 'Kosong',
       'in-use': 'Dipakai',
@@ -1156,7 +973,7 @@
     let actions = '';
     if (pc.status === 'available') {
       actions = `
-        <button class="btn btn-success btn-sm" onclick="openStartModal(${pc.id})">
+        <button class="btn btn-success btn-sm" onclick="openStartModal(${pc.id}, '${pc.code}')">
           <i class="bi bi-play-fill"></i> Mulai
         </button>
         <button class="btn btn-sm btn-icon-only" onclick="setMaintenance(${pc.id}, 'maintenance')" title="Maintenance">
@@ -1177,7 +994,7 @@
         <button class="btn btn-sm" onclick="openMoveModal(${pc.id}, '${userName}')">
           <i class="bi bi-arrow-left-right"></i> Pindah
         </button>
-        <button class="btn btn-sm btn-icon-only" onclick="reduceTime(${pc.id}, 15)">-15m</button>
+        <button class="btn btn-sm" onclick="reduceTime(${pc.id}, 15)">-15m</button>
         <button class="btn btn-sm btn-icon-only" onclick="openChatModal(${pc.id}, '${userName}')" title="Chat">
           <i class="bi bi-chat-dots"></i>
         </button>
@@ -1220,12 +1037,24 @@
           </div>
           <span class="pc-status ${statusKey}">${statusText}</span>
         </div>
+
         <div class="pc-info">
-          <div class="pc-info-row"><span class="label">Pengguna</span><span class="value">${userName}</span></div>
-          <div class="pc-info-row"><span class="label">Sesi Hari Ini</span><span class="value mono">${sessionCount}</span></div>
-          <div class="pc-info-row"><span class="label">Saldo</span><span class="value mono">${saldo}</span></div>
+          <div class="pc-info-row">
+            <span class="label">Pengguna</span>
+            <span class="value">${userName}</span>
+          </div>
+          <div class="pc-info-row">
+            <span class="label">Sesi Hari Ini</span>
+            <span class="value mono">${sessionCount}</span>
+          </div>
+          <div class="pc-info-row">
+            <span class="label">Saldo</span>
+            <span class="value mono">${saldo}</span>
+          </div>
         </div>
+
         <div class="pc-timer ${isActive ? '' : 'idle'}">${timer}</div>
+
         <div class="pc-actions">${actions}</div>
       </div>
     `;
@@ -1234,155 +1063,43 @@
   function renderPagination(total) {
     const totalPages = Math.ceil(total / PER_PAGE);
     const bar = document.getElementById('paginationBar');
+
     if (totalPages <= 1) {
       bar.innerHTML = `<span>Menampilkan ${total} PC</span>`;
       return;
     }
+
     let pages = '';
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
         pages += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+      } else if (i === currentPage - 2 || i === currentPage + 2) {
+        pages += `<button disabled>...</button>`;
       }
     }
+
     bar.innerHTML = `
       <span>Menampilkan ${(currentPage - 1) * PER_PAGE + 1}-${Math.min(currentPage * PER_PAGE, total)} dari ${total} PC</span>
       <div class="pagination">
-        <button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+        <button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+          <i class="bi bi-chevron-left"></i>
+        </button>
         ${pages}
-        <button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+        <button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+          <i class="bi bi-chevron-right"></i>
+        </button>
       </div>
     `;
   }
 
-  function goToPage(page) { currentPage = page; renderGrid(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-
-  // ================= QUEUE =================
-  function loadQueue() {
-    socket.emit('get_queue', {}, renderQueue);
-  }
-
-  function renderQueue(rows) {
-    rows = rows || [];
-    const tbody = document.getElementById('queueTableBody');
-    if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
-        <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
-        Belum ada antrean
-      </td></tr>`;
-      return;
-    }
-    tbody.innerHTML = rows.map((q, idx) => `
-      <tr>
-        <td>${idx + 1}</td>
-        <td><strong>${q.user_name}</strong></td>
-        <td>${q.purpose}</td>
-        <td style="color: var(--text-muted); font-size: 12px;">${q.created_at || '-'}</td>
-        <td style="text-align: right;">
-          <button class="btn btn-sm btn-icon-only" onclick="removeQueue(${q.id})" title="Hapus">
-            <i class="bi bi-trash"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  function addQueue() {
-    const user_name = document.getElementById('queueUserName').value.trim();
-    const purpose = document.getElementById('queuePurpose').value;
-    if (!user_name) return alert('Nama wajib diisi');
-    socket.emit('add_queue', { user_name, purpose, duration_minutes: 60 }, () => {
-      document.getElementById('queueUserName').value = '';
-    });
-  }
-
-  function removeQueue(id) {
-    if (!confirm('Hapus dari antrean?')) return;
-    socket.emit('remove_queue', id);
-  }
-
-  // ================= USERS =================
-  function loadDailyActivity() {
-    socket.emit('get_daily_activity', {}, (rows) => {
-      rows = rows || [];
-      const tbody = document.getElementById('usersTableBody');
-      if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">
-          <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
-          Belum ada aktivitas hari ini
-        </td></tr>`;
-        return;
-      }
-      tbody.innerHTML = rows.map(r => {
-        const isFull = r.total_sessions >= 2;
-        return `
-          <tr>
-            <td><strong>${r.username}</strong></td>
-            <td><span class="badge ${isFull ? 'danger' : 'success'}">${r.total_sessions} / 2</span></td>
-            <td><span class="badge ${isFull ? 'danger' : 'success'}">${isFull ? 'Penuh' : 'Tersedia'}</span></td>
-            <td style="text-align: right;">
-              <button class="btn btn-sm btn-outline-danger" onclick="resetUserQuota('${r.username}')">
-                <i class="bi bi-arrow-counterclockwise"></i> Reset
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    });
-  }
-
-  function resetUserQuota(username) {
-    if (!confirm(`Reset kuota "${username}"?`)) return;
-    socket.emit('delete_user_daily_activity', { username }, (res) => {
-      alert(res?.message || 'Reset berhasil');
-      loadDailyActivity();
-    });
-  }
-
-  function submitCrudQuota() {
-    const oldName = document.getElementById('crudOldName').value.trim();
-    const newName = document.getElementById('crudNewName').value.trim();
-    const newCount = document.getElementById('crudNewCount').value;
-    if (!newName) return alert('Nama target wajib diisi');
-    socket.emit('admin_crud_user_quota', { oldName, newName, newCount }, (res) => {
-      alert(res?.message || res?.error || 'Berhasil');
-      loadDailyActivity();
-      document.getElementById('crudOldName').value = '';
-      document.getElementById('crudNewName').value = '';
-      document.getElementById('crudNewCount').value = '';
-    });
-  }
-
-  // ================= HISTORY =================
-  function loadHistory() {
-    socket.emit('get_session_history', {}, (rows) => {
-      rows = rows || [];
-      const tbody = document.getElementById('historyTableBody');
-      if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
-          <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
-          Belum ada riwayat sesi
-        </td></tr>`;
-        return;
-      }
-      tbody.innerHTML = rows.map(r => {
-        const isFinished = !!r.end_time;
-        return `
-          <tr>
-            <td>${r.id}</td>
-            <td><strong>${r.code}</strong></td>
-            <td>${r.username}</td>
-            <td>${r.purpose}</td>
-            <td style="font-size: 12px; color: var(--text-muted);">${r.start_time || '-'}</td>
-            <td style="font-size: 12px; color: var(--text-muted);">${r.end_time || '-'}</td>
-            <td><span class="badge ${isFinished ? 'neutral' : 'success'}">${isFinished ? 'Selesai' : 'Berlangsung'}</span></td>
-          </tr>
-        `;
-      }).join('');
-    });
+  function goToPage(page) {
+    currentPage = page;
+    renderGrid();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ================= ACTIONS =================
-  function openStartModal(pcId) {
+  function openStartModal(pcId, pcCode) {
     document.getElementById('modalPcId').value = pcId;
     document.getElementById('modalUserName').value = '';
     document.getElementById('modalDuration').value = '';
@@ -1393,31 +1110,45 @@
     const pcId = document.getElementById('modalPcId').value;
     const userName = document.getElementById('modalUserName').value.trim();
     const purpose = document.getElementById('modalPurpose').value;
-    const duration = parseInt(document.getElementById('modalDuration').value) || 120;
+    const duration = parseInt(document.getElementById('modalDuration').value) || 60;
+
     if (!userName) return alert('Nama wajib diisi');
 
     socket.emit('start_session', { pcId, userName, purpose, durationMinutes: duration }, (res) => {
       if (res?.error) alert('Gagal: ' + res.error);
-      else startModal.hide();
+      else {
+        startModal.hide();
+        console.log('✅ Sesi dimulai');
+      }
     });
   }
 
   function endSession(pcId) {
     if (!confirm('Akhiri sesi ini?')) return;
-    socket.emit('end_session', { pcId }, (res) => { if (res?.error) alert('Gagal: ' + res.error); });
+    socket.emit('end_session', { pcId }, (res) => {
+      if (res?.error) alert('Gagal: ' + res.error);
+    });
   }
 
   function pauseSession(pcId) {
-    socket.emit('pause_session', { pcId }, (res) => { if (res?.error) alert('Gagal: ' + res.error); });
+    socket.emit('pause_session', { pcId }, (res) => {
+      if (res?.error) alert('Gagal Jeda: ' + res.error);
+    });
   }
 
   function resumeSession(pcId) {
-    socket.emit('resume_session', { pcId }, (res) => { if (res?.error) alert('Gagal: ' + res.error); });
+    socket.emit('resume_session', { pcId }, (res) => {
+      if (res?.error) alert('Gagal Lanjut: ' + res.error);
+    });
   }
 
   function reduceTime(pcId, minutes) {
-    const reason = prompt(`Kurangi ${minutes} menit?`, 'Mengganggu kenyamanan');
-    if (reason !== null) socket.emit('reduce_time', { pcId, reduceMinutes: minutes, reason }, () => {});
+    const reason = prompt(`Kurangi ${minutes} menit karena alasan apa?`, 'Mengganggu kenyamanan');
+    if (reason !== null) {
+      socket.emit('reduce_time', { pcId, reduceMinutes: minutes, reason }, (res) => {
+        if (res?.error) alert('Gagal: ' + res.error);
+      });
+    }
   }
 
   function openExtendModal(pcId, userName) {
@@ -1438,11 +1169,13 @@
   function openMoveModal(pcId, userName) {
     document.getElementById('moveFromPcId').value = pcId;
     document.getElementById('moveModalTitle').textContent = `Pindah PC — ${userName}`;
+
     const available = allPCs.filter(p => p.status === 'available' && p.id !== pcId);
     const select = document.getElementById('moveTargetPc');
     select.innerHTML = available.length
       ? available.map(p => `<option value="${p.id}">${p.code} — ${p.location || '-'}</option>`).join('')
       : '<option value="">Tidak ada PC kosong</option>';
+
     moveModal.show();
   }
 
@@ -1450,9 +1183,13 @@
     const fromPcId = document.getElementById('moveFromPcId').value;
     const toPcId = document.getElementById('moveTargetPc').value;
     if (!toPcId) return alert('Pilih PC tujuan');
+
     socket.emit('move_session', { fromPcId, toPcId }, (res) => {
       if (res?.error) alert('Gagal: ' + res.error);
-      else { alert(res?.message || 'Berhasil'); moveModal.hide(); }
+      else {
+        alert(res?.message || 'Berhasil dipindah');
+        moveModal.hide();
+      }
     });
   }
 
@@ -1467,11 +1204,20 @@
     const pcId = document.getElementById('chatPcId').value;
     const message = document.getElementById('chatMessage').value.trim();
     if (!message) return alert('Pesan kosong');
-    socket.emit('admin_send_chat', { pcId, message }, () => chatModal.hide());
+    socket.emit('admin_send_chat', { pcId, message }, (res) => {
+      if (res?.error) alert('Gagal: ' + res.error);
+      else chatModal.hide();
+    });
   }
 
-  function setMaintenance(pcId, status) { socket.emit('set_pc_maintenance', { pcId, status }, () => {}); }
-  function deletePC(pcId, code) { if (confirm(`Hapus ${code}?`)) socket.emit('delete_pc', { pcId }, () => {}); }
+  function setMaintenance(pcId, status) {
+    socket.emit('set_pc_maintenance', { pcId, status }, () => {});
+  }
+
+  function deletePC(pcId, code) {
+    if (!confirm(`Hapus ${code}?`)) return;
+    socket.emit('delete_pc', { pcId }, () => {});
+  }
 
   function openAddPCModal() {
     document.getElementById('addPCCode').value = '';
@@ -1483,13 +1229,45 @@
     const code = document.getElementById('addPCCode').value.trim();
     const location = document.getElementById('addPCLocation').value.trim();
     if (!code) return alert('Kode wajib diisi');
-    socket.emit('add_pc', { code, location }, () => addPCModal.hide());
+
+    socket.emit('add_pc', { code, location }, () => {
+      addPCModal.hide();
+    });
   }
 
   function resetAllQuotas() {
-    if (!confirm('Reset semua kuota user?')) return;
-    socket.emit('reset_all_daily_quotas', {}, (res) => alert(res?.message || 'Done'));
+    if (!confirm('Reset semua kuota harian user?')) return;
+    socket.emit('reset_all_daily_quotas', {}, (res) => {
+      alert(res?.message || 'Done');
+    });
   }
+
+  // ================= SIDEBAR =================
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('mobile-open');
+    document.getElementById('sidebarBackdrop').classList.toggle('show');
+  }
+
+  document.getElementById('sidebarBackdrop')?.addEventListener('click', toggleSidebar);
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      this.classList.add('active');
+
+      const page = this.dataset.page;
+      const titles = {
+        monitoring: ['Dashboard Monitoring', 'Pantau status unit PC secara real-time'],
+        queue: ['Antrean', 'Kelola antrean pengguna'],
+        users: ['Kelola User', 'CRUD user dan kuota'],
+        history: ['Riwayat Sesi', 'History 100 sesi terakhir'],
+        settings: ['Pengaturan', 'Konfigurasi sistem']
+      };
+      const t = titles[page] || ['Dashboard', ''];
+      document.getElementById('pageTitle').textContent = t[0];
+      document.getElementById('pageSub').textContent = t[1];
+    });
+  });
 
   // Init
   applyFilter();

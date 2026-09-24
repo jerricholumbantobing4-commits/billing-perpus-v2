@@ -1,9 +1,6 @@
 // ================= PC MODEL =================
 const { pool } = require('../config/database');
 
-/**
- * Ambil semua PC
- */
 async function getAllPCs() {
   const [rows] = await pool.query(`
     SELECT 
@@ -15,6 +12,7 @@ async function getAllPCs() {
       purpose,
       current_user_type,
       current_duration_minutes,
+      current_duration_seconds,
       current_start_time as start_time,
       remaining_paused_seconds,
       current_session_id
@@ -24,9 +22,6 @@ async function getAllPCs() {
   return rows;
 }
 
-/**
- * Ambil PC berdasarkan ID
- */
 async function getPCById(pcId) {
   const [rows] = await pool.query(`
     SELECT 
@@ -38,6 +33,7 @@ async function getPCById(pcId) {
       purpose,
       current_user_type,
       current_duration_minutes,
+      current_duration_seconds,
       current_start_time as start_time,
       remaining_paused_seconds,
       current_session_id
@@ -47,9 +43,6 @@ async function getPCById(pcId) {
   return rows[0] || null;
 }
 
-/**
- * Ambil PC berdasarkan kode (PC-01, PC-02, dll.)
- */
 async function getPCByCode(code) {
   const [rows] = await pool.query(`
     SELECT 
@@ -61,6 +54,7 @@ async function getPCByCode(code) {
       purpose,
       current_user_type,
       current_duration_minutes,
+      current_duration_seconds,
       current_start_time as start_time,
       remaining_paused_seconds,
       current_session_id
@@ -70,9 +64,6 @@ async function getPCByCode(code) {
   return rows[0] || null;
 }
 
-/**
- * Tambah PC baru
- */
 async function addPC(code, location) {
   const [result] = await pool.query(
     'INSERT INTO pcs (CODE, location, STATUS) VALUES (?, ?, ?)',
@@ -81,19 +72,15 @@ async function addPC(code, location) {
   return result.insertId;
 }
 
-/**
- * Update PC — mapping nama field ke nama kolom database
- */
 async function updatePC(pcId, fields) {
-  // Mapping: nama kode → nama kolom database
   const columnMap = {
     'status': 'STATUS',
-    'STATUS': 'STATUS',
     'username': 'username',
     'user_name': 'username',
     'purpose': 'purpose',
     'current_user_type': 'current_user_type',
     'current_duration_minutes': 'current_duration_minutes',
+    'current_duration_seconds': 'current_duration_seconds',
     'current_start_time': 'current_start_time',
     'start_time': 'current_start_time',
     'remaining_paused_seconds': 'remaining_paused_seconds',
@@ -106,19 +93,27 @@ async function updatePC(pcId, fields) {
   const keys = Object.keys(fields);
   const values = Object.values(fields);
   
-  const setClause = keys.map(k => {
-    const col = columnMap[k] || k;
+  const validPairs = keys
+    .map((k, i) => ({ key: k, value: values[i] }))
+    .filter(pair => {
+      if (!pair.key || pair.key === 'NaN') return false;
+      if (typeof pair.value === 'number' && isNaN(pair.value)) return false;
+      return true;
+    });
+
+  if (validPairs.length === 0) return;
+
+  const setClause = validPairs.map(p => {
+    const col = columnMap[p.key] || p.key;
     return `${col} = ?`;
   }).join(', ');
-  
-  values.push(pcId);
-  
-  await pool.query(`UPDATE pcs SET ${setClause} WHERE id = ?`, values);
+
+  const finalValues = validPairs.map(p => p.value);
+  finalValues.push(pcId);
+
+  await pool.query(`UPDATE pcs SET ${setClause} WHERE id = ?`, finalValues);
 }
 
-/**
- * Hapus PC
- */
 async function deletePC(pcId) {
   await pool.query('DELETE FROM pcs WHERE id = ?', [pcId]);
 }

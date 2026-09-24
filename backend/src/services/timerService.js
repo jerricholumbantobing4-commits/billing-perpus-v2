@@ -1,15 +1,10 @@
 // ================= TIMER SERVICE =================
-// Menghitung sisa waktu setiap PC & broadcast ke semua client
-
 const pcModel = require('../models/pcModel');
 const cacheService = require('./cacheService');
 const { formatHHMMSS } = require('../utils/formatTime');
 
 let io = null;
 
-/**
- * Set Socket.IO instance
- */
 function setIO(socketIO) {
   io = socketIO;
 }
@@ -18,15 +13,23 @@ function setIO(socketIO) {
  * Hitung sisa detik untuk sebuah PC
  */
 function calculateRemaining(pc) {
-  if (pc.status === 'in-use' && pc.start_time && pc.current_duration_minutes) {
-    const startTimeMs = new Date(pc.start_time).getTime();
-    const durationMs = pc.current_duration_minutes * 60 * 1000;
-    const elapsedMs = Date.now() - startTimeMs;
-    const leftMs = durationMs - elapsedMs;
-    return Math.max(0, Math.floor(leftMs / 1000));
-  } else if (pc.status === 'paused') {
+  if (!pc) return 0;
+
+  if (pc.status === 'paused') {
     return Number(pc.remaining_paused_seconds) || 0;
   }
+
+  if (pc.status === 'in-use') {
+    if (!pc.start_time || !pc.current_duration_seconds) return 0;
+    
+    const startTimeMs = new Date(pc.start_time).getTime();
+    const durationMs = Number(pc.current_duration_seconds) * 1000;
+    const elapsedMs = Date.now() - startTimeMs;
+    const leftMs = durationMs - elapsedMs;
+    
+    return Math.max(0, Math.floor(leftMs / 1000));
+  }
+
   return 0;
 }
 
@@ -40,8 +43,8 @@ async function broadcastPCs() {
     const formatted = pcs.map(pc => {
       const remainingSeconds = calculateRemaining(pc);
       const todaySessions = pc.user_name ? cacheService.getSessionCount(pc.user_name) : 0;
-      const durationMin = Number(pc.current_duration_minutes) || 0;
-      const saldoHours = durationMin > 0 ? (durationMin / 60).toFixed(1) : '-';
+      const durationSec = Number(pc.current_duration_seconds) || 0;
+      const saldoHours = durationSec > 0 ? (durationSec / 3600).toFixed(2) : '-';
 
       return {
         ...pc,
@@ -60,9 +63,6 @@ async function broadcastPCs() {
   }
 }
 
-/**
- * Mulai interval broadcast (setiap 1 detik)
- */
 function startBroadcast() {
   setInterval(() => {
     broadcastPCs();

@@ -7,17 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💻</text></svg>" id="favicon">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-
-<!-- ===== SOCKET.IO DENGAN FALLBACK LOKAL ===== -->
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-<script>
-  // Kalau CDN gagal, coba ambil dari server lokal (Node.js otomatis serve /socket.io/socket.io.js)
-  if (typeof io === 'undefined') {
-    console.warn('[Init] Socket.io CDN gagal, mencoba fallback lokal /socket.io/socket.io.js ...');
-    document.write('<script src="/socket.io/socket.io.js"><\/script>');
-  }
-</script>
-
 <style>
   :root{
     --bg-body: #0a0a0c;
@@ -117,20 +107,11 @@
   .status-pill.paused { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border-color: rgba(245, 158, 11, 0.2); }
   .status-pill.maintenance { background: rgba(139, 92, 246, 0.1); color: var(--accent-violet); border-color: rgba(139, 92, 246, 0.2); }
   .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
-
-  /* ===== TIMER UTAMA (DIPERKECIL) ===== */
   .timer-display {
-    font-family: var(--font-mono);
-    font-size: clamp(1.8rem, 4vw, 3rem);   /* <-- DIPERKECIL dari 3rem–6rem */
-    font-weight: 700;
-    line-height: 1;
-    color: var(--text-primary);
-    letter-spacing: -1px;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
-    margin: 8px 0;
+    font-family: var(--font-mono); font-size: clamp(3rem, 8vw, 6rem); font-weight: 700; line-height: 1;
+    color: var(--text-primary); letter-spacing: -2px; text-shadow: 0 0 30px rgba(255, 255, 255, 0.08); margin: 5px 0;
   }
   .timer-display.dim { color: var(--text-muted); text-shadow: none; }
-
   .headline { font-family: var(--font-display); font-size: 1.8rem; font-weight: 600; color: var(--text-primary); }
   .subline { color: var(--text-secondary); font-size: 0.9rem; max-width: 450px; margin-top: 8px; }
   .info-grid {
@@ -394,9 +375,8 @@
       letter-spacing: 0.5px;
     }
 
-    /* ===== TIMER DI WIDGET KECIL (DIPERKECIL) ===== */
     .timer-display {
-      font-size: 1.6rem;   /* <-- DIPERKECIL dari 2.2rem */
+      font-size: 2.2rem;
       letter-spacing: -1px;
       margin: 2px 0;
     }
@@ -446,17 +426,16 @@
   .pip-compact .pip-status.paused { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
   .pip-compact .pip-status.maintenance { background: rgba(139, 92, 246, 0.15); color: var(--accent-violet); }
 
-  /* ===== TIMER DI PiP (DIPERKECIL) ===== */
   .pip-compact .pip-timer {
     font-family: var(--font-mono);
-    font-size: 2.2rem;   /* <-- DIPERKECIL dari 3.2rem */
+    font-size: 3.2rem;
     font-weight: 700;
     color: var(--text-primary);
     text-align: center;
-    letter-spacing: -1.5px;
+    letter-spacing: -2px;
     line-height: 1;
     margin: 8px 0;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
   }
   .pip-compact .pip-timer.dim {
     color: var(--text-muted);
@@ -523,31 +502,7 @@
 <div id="root"></div>
 
 <script>
-  // ================= GUARD: CEK SOCKET.IO =================
-  let socket;
-  if (typeof io === 'undefined') {
-    console.error('[FATAL] Socket.io gagal dimuat (CDN & lokal). Menampilkan error page.');
-    document.addEventListener('DOMContentLoaded', () => {
-      const rootEl = document.getElementById('root');
-      if (rootEl) {
-        rootEl.innerHTML = `
-          <div class="center-msg" style="padding:24px;">
-            <div style="font-size:4rem; margin-bottom:16px;">⚠️</div>
-            <h1>Koneksi Gagal</h1>
-            <p>Library <strong>Socket.io</strong> tidak dapat dimuat.</p>
-            <p style="font-size:0.8rem; color:var(--text-muted); max-width:420px;">
-              Pastikan server billing (Node.js) sedang berjalan, dan koneksi internet tersedia.
-            </p>
-            <button class="btn-primary" onclick="location.reload()">🔄 Coba Lagi</button>
-          </div>`;
-      }
-    });
-    // Dummy socket supaya sisa kode tidak crash
-    socket = { connected: false, on: () => {}, emit: () => {}, disconnect: () => {} };
-  } else {
-    socket = io('/', { transports: ['websocket', 'polling'] });
-  }
-
+  const socket = io('/', { transports: ['websocket', 'polling'] });
   const root = document.getElementById('root');
   
   const isElectron = typeof window.electronAPI !== 'undefined';
@@ -877,11 +832,13 @@
     }
 
     try {
+      // Buka PiP window dengan ukuran besar
       pipWindow = await documentPictureInPicture.requestWindow({
         width: 420,
         height: 480,
       });
 
+      // Copy semua stylesheet dari halaman utama
       [...document.styleSheets].forEach((styleSheet) => {
         try {
           const cssRules = [...styleSheet.cssRules].map(rule => rule.cssText).join('');
@@ -898,6 +855,7 @@
         }
       });
 
+      // Tambahkan font & icons
       const fonts = pipWindow.document.createElement('link');
       fonts.rel = 'stylesheet';
       fonts.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap';
@@ -908,6 +866,7 @@
       icons.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css';
       pipWindow.document.head.appendChild(icons);
 
+      // Build konten PiP
       buildPipContent();
 
       pipWindow.addEventListener('pagehide', () => {
@@ -921,6 +880,8 @@
     }
   }
 
+  // Build konten PiP
+    // Build konten PiP (versi paling compact)
   function buildPipContent() {
     if (!pipWindow || pipWindow.closed) return;
     const pc = myPC();
@@ -938,122 +899,95 @@
     const timerStr = isSessionActive ? parseServerTime(pc.formatted_time) : '--:--:--';
 
     const statusInfo = {
-      'available': { text: 'PC KOSONG', class: 'available' },
-      'in-use': { text: 'SEDANG DIGUNAKAN', class: 'in-use' },
-      'paused': { text: 'SESI DIJEDA', class: 'paused' },
-      'maintenance': { text: 'MAINTENANCE', class: 'maintenance' }
-    }[pc.status] || { text: 'PC KOSONG', class: 'available' };
+      'available': { text: 'KOSONG', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)' },
+      'in-use': { text: 'DIPAKAI', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+      'paused': { text: 'JEDA', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+      'maintenance': { text: 'MAINT', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' }
+    }[pc.status] || { text: 'KOSONG', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)' };
 
     pipWindow.document.body.style.cssText = `
       margin: 0;
       padding: 0;
-      background: var(--bg-body);
-      color: var(--text-primary);
-      font-family: var(--font-body);
+      background: #0a0a0c;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
       overflow: hidden;
+      height: 100vh;
     `;
 
     pipWindow.document.body.innerHTML = `
-      <div class="pip-compact">
-        <div class="pip-header">
-          <div class="pip-pc">${pc.code}</div>
-          <div class="pip-status ${statusInfo.class}">${statusInfo.text}</div>
+      <div style="
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        height: 100vh;
+        box-sizing: border-box;
+        justify-content: center;
+      ">
+        <!-- Top: PC Code + Status -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #22c55e;
+            background: rgba(34, 197, 94, 0.15);
+            padding: 3px 10px;
+            border-radius: 5px;
+            letter-spacing: 0.5px;
+          ">${pc.code}</div>
+          <div style="
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 5px;
+            letter-spacing: 0.5px;
+            background: ${statusInfo.bg};
+            color: ${statusInfo.color};
+          ">${statusInfo.text}</div>
         </div>
 
-        <div class="pip-timer ${!isSessionActive ? 'dim' : ''}">${timerStr}</div>
+        <!-- Timer (besar) -->
+        <div style="
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 2.4rem;
+          font-weight: 700;
+          color: ${!isSessionActive ? '#5c5c66' : '#ffffff'};
+          text-align: center;
+          letter-spacing: -1.5px;
+          line-height: 1;
+          text-shadow: ${!isSessionActive ? 'none' : '0 0 25px rgba(255, 255, 255, 0.15)'};
+        ">${timerStr}</div>
 
-        <div class="pip-user">
-          Pengguna: <strong>${userName}</strong>
+        <!-- User -->
+        <div style="
+          text-align: center;
+          font-size: 0.85rem;
+          color: #a0a0ab;
+        ">
+          Pengguna: <strong style="color: #ffffff; font-weight: 700;">${userName}</strong>
         </div>
 
-        <div class="pip-info">
-          <div class="pip-info-item">
-            <div class="lbl">Saldo</div>
-            <div class="val">${saldo}</div>
+        <!-- Info Row (2 kolom saja) -->
+        <div style="
+          display: flex;
+          justify-content: space-around;
+          padding-top: 8px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+        ">
+          <div style="text-align: center;">
+            <div style="font-size: 0.55rem; color: #5c5c66; text-transform: uppercase; letter-spacing: 0.5px;">Saldo</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 700; color: #ffffff; margin-top: 2px;">${saldo}</div>
           </div>
-          <div class="pip-info-item">
-            <div class="lbl">Sesi Ke</div>
-            <div class="val">${sessionCount} / 2</div>
+          <div style="text-align: center;">
+            <div style="font-size: 0.55rem; color: #5c5c66; text-transform: uppercase; letter-spacing: 0.5px;">Sesi</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 700; color: #ffffff; margin-top: 2px;">${sessionCount} / 2</div>
           </div>
-          <div class="pip-info-item">
-            <div class="lbl">Lokasi</div>
-            <div class="val">${pc.location || '-'}</div>
-          </div>
-        </div>
-
-        <div class="pip-footer">
-          Billing Perpus — PC ${pc.code}
         </div>
       </div>
     `;
   }
-
-  function updatePipContent() {
-    if (!pipWindow || pipWindow.closed) return;
-    buildPipContent();
-  }
-
-  // ================= RENDER =================
-  function render() {
-    if (!myCode) return renderSelector();
-    if (!hasData) return renderLoading();
-
-    const pc = allPCs.find(p => p.code === myCode);
-    if (!pc) {
-      myCode = null;
-      localStorage.removeItem('kioskPcCode');
-      return renderSelector();
-    }
-
-    const statusChanged = detectStatusTransition(pc.status);
-    detectDurationChange(pc, statusChanged);
-
-    const isSessionActive = pc.status === 'in-use' || pc.status === 'paused';
-    const userName = isSessionActive ? (pc.user_name || '-') : '-';
-    const sessionCount = pc.today_sessions !== undefined ? pc.today_sessions
-      : (pc.user_session_count !== undefined ? pc.user_session_count : 0);
-    let saldo = '-';
-    if (isSessionActive && pc.saldo_hours !== undefined && pc.saldo_hours !== null) {
-      const h = parseFloat(pc.saldo_hours);
-      if (!isNaN(h)) saldo = (Number.isInteger(h) ? h : h.toFixed(1)) + ' Jam';
-    }
-    const timerStr = isSessionActive ? parseServerTime(pc.formatted_time) : '--:--:--';
-
-    let centerContent = '';
-    if (pc.status === 'available') {
-      centerContent = `
-        <div class="status-pill available"><span class="dot"></span>PC KOSONG</div>
-        <div class="headline">Siap Digunakan</div>
-        <div class="subline">Silakan hubungi petugas perpustakaan untuk memulai sesi di unit ini.</div>
-      `;
-    } else if (pc.status === 'maintenance') {
-      centerContent = `
-        <div class="status-pill maintenance"><span class="dot"></span>MAINTENANCE</div>
-        <div class="headline">Sedang Dalam Perbaikan</div>
-        <div class="subline">Mohon jangan menggunakan unit ini sampai perbaikan selesai.</div>
-      `;
-    } else if (pc.status === 'in-use') {
-      centerContent = `
-        <div class="status-pill inuse"><span class="dot"></span>SEDANG DIGUNAKAN</div>
-        <div class="timer-display">${timerStr}</div>
-        <div class="info-grid">
-          <div class="info-item"><div class="lbl">PENGGUNA</div><div class="val">${userName}</div></div>
-          <div class="info-item"><div class="lbl">SALDO WAKTU</div><div class="val">${saldo}</div></div>
-          <div class="info-item"><div class="lbl">SESI KE</div><div class="val">${sessionCount} / 2</div></div>
-        </div>
-      `;
-    } else if (pc.status === 'paused') {
-      centerContent = `
-        <div class="status-pill paused"><span class="dot"></span>SESI DIJEDA</div>
-        <div class="timer-display dim">${timerStr}</div>
-        <div class="subline" style="margin-top:-8px;">Sesi dijeda oleh petugas. Saldo waktu tidak berkurang.</div>
-        <div class="info-grid">
-          <div class="info-item"><div class="lbl">PENGGUNA</div><div class="val">${userName}</div></div>
-          <div class="info-item"><div class="lbl">SALDO WAKTU</div><div class="val">${saldo}</div></div>
-          <div class="info-item"><div class="lbl">SESI KE</div><div class="val">${sessionCount} / 2</div></div>
-        </div>
-      `;
-    }
 
     root.innerHTML = `
       <div style="display:flex; flex-direction:column; height:100vh;">
@@ -1139,8 +1073,8 @@
       </div>
     `;
 
+    // Update PiP content kalau PiP aktif
     updatePipContent();
-  }
 
   function renderLoading() {
     root.innerHTML = `<div class="center-msg"><h1>Menghubungkan…</h1><p>Mengambil data unit PC dari server.</p></div>`;
