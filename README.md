@@ -25,6 +25,45 @@ Sistem Billing Perpustakaan berbasis **Node.js + Socket.IO + MySQL**.
 
 ---
 
+
+---
+
+## 🔓 Panduan Keluar dari Kiosk Mode
+
+Jika PC user menggunakan mode kiosk (`--kiosk`) dan perlu keluar:
+
+### ⚡ Cara Cepat
+
+1. **`Alt + F4`** — close Chrome langsung
+2. **`Ctrl + Shift + Esc`** — buka Task Manager → kill Chrome
+3. **`Ctrl + Alt + Del`** — Sign out / Restart PC
+
+### 🥇 Cara 1: Alt + F4
+Tekan `Alt + F4` → Chrome langsung close.
+
+### 🥈 Cara 2: Task Manager (Paling Ampuh)
+1. Tekan `Ctrl + Shift + Esc`
+2. Cari **Google Chrome** di daftar
+3. Klik kanan → **End task**
+
+### 🥉 Cara 3: Ctrl + Alt + Del
+1. Tekan `Ctrl + Alt + Del`
+2. Pilih **Task Manager** atau **Sign out** atau **Restart**
+
+### 🔄 Reset PC Setelah Test
+
+1. **Win + R** → `shell:startup` → hapus shortcut `Billing Perpus`
+2. Hapus shortcut di Desktop
+3. **Win + R** → `netplwiz` → aktifkan kembali "Users must enter a password"
+4. Restart PC
+
+### 🆘 Metode Darurat
+Kalau semua cara gagal: tekan tombol **power** PC, tahan **5-10 detik** → mati paksa → nyalakan lagi.
+
+---
+
+**Last updated:** 2026-09-25
+
 ## Teknologi
 
 - **Backend:** Node.js, Express, Socket.IO, MySQL
