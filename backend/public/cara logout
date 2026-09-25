@@ -1,0 +1,12 @@
+setup test biar gampang
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --start-fullscreen "http://192.168.5.23:3000/user?pc=PC01" --no-first-run --disable-session-crashed-bubble
+
+setup kiosk (final)
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk "http://192.168.5.23:3000/user?pc=PC01" --no-first-run --disable-session-crashed-bubble
+ 
+ cara keluar kiosk
+1. Alt + F4            ← coba pertama
+   ↓ kalau gagal
+2. Ctrl + Shift + Esc  ← buka Task Manager, kill Chrome
+   ↓ kalau gagal
+3. Ctrl + Alt + Del    ← Sign out atau Restart

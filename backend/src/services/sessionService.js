@@ -8,25 +8,27 @@ const { cleanStr } = require('../utils/cleanStr');
 
 /**
  * Hitung sisa detik dari sebuah PC
+ * NOTE: pc.start_time adalah ALIAS dari current_start_time (lihat pcModel.js)
  */
 function calculateRemainingSeconds(pc) {
   if (!pc) return 0;
-  
+
   if (pc.status === 'paused') {
     return Number(pc.remaining_paused_seconds) || 0;
   }
-  
+
   if (pc.status === 'in-use') {
+    // ⚠️ PAKAI pc.start_time (bukan current_start_time!)
     if (!pc.start_time || !pc.current_duration_seconds) return 0;
-    
+
     const startMs = new Date(pc.start_time).getTime();
     const durationMs = Number(pc.current_duration_seconds) * 1000;
     const elapsedMs = Date.now() - startMs;
     const leftMs = durationMs - elapsedMs;
-    
+
     return Math.max(0, Math.floor(leftMs / 1000));
   }
-  
+
   return 0;
 }
 
@@ -45,11 +47,11 @@ async function startSession({ pcId, userName, purpose, durationMinutes }) {
   }
 
   const durMin = Number(durationMinutes) > 0 ? Number(durationMinutes) : 120;
-  const durSec = durMin * 120;
+  const durSec = durMin * 60;
 
   const pcInfo = await pcModel.getPCById(pcId);
   if (!pcInfo) throw new Error('PC tidak ditemukan');
-  
+
   const sessionId = await sessionModel.createSession(pcInfo.code, cleanUser, cleanPurpose);
 
   await pcModel.updatePC(pcId, {
@@ -154,9 +156,15 @@ async function resumeSession(pcId) {
  */
 async function extendTime(pcId, addMinutes) {
   const addMin = Number(addMinutes) || 0;
+  if (addMin < 1) throw new Error('Jumlah menit tidak valid');
+
   const addSec = addMin * 60;
   const pc = await pcModel.getPCById(pcId);
   if (!pc) throw new Error('PC tidak ditemukan');
+
+  if (pc.status !== 'in-use' && pc.status !== 'paused') {
+    throw new Error('PC tidak sedang dipakai atau dijeda');
+  }
 
   if (pc.status === 'paused') {
     await pcModel.updatePC(pcId, {
@@ -172,33 +180,102 @@ async function extendTime(pcId, addMinutes) {
   }
 
   await timerService.broadcastPCs();
+  console.log(`[ExtendTime] ${pc.code} +${addMin} menit`);
   return { success: true, message: `+${addMin} menit ditambahkan` };
+}
+
+/**
+ * Tambah waktu untuk PC yang SUDAH kosong (dari layar billing)
+ */
+async function extendTimeForAvailable(pcId, addMinutes, userName) {
+  const addMin = Number(addMinutes) || 0;
+  if (addMin < 1) throw new Error('Jumlah menit tidak valid');
+
+  const pc = await pcModel.getPCById(pcId);
+  if (!pc) throw new Error('PC tidak ditemukan');
+
+  if (pc.status !== 'available') {
+    return extendTime(pcId, addMinutes);
+  }
+
+  const cleanUser = cleanStr(userName) || 'User';
+  const cleanPurpose = cleanStr(pc.purpose) || '-';
+  const addSec = addMin * 60;
+
+  const sessionId = await sessionModel.createSession(pc.code, cleanUser, cleanPurpose);
+
+  await pcModel.updatePC(pcId, {
+    status: 'in-use',
+    username: cleanUser,
+    purpose: cleanPurpose,
+    current_start_time: new Date(),
+    current_duration_minutes: addMin,
+    current_duration_seconds: addSec,
+    remaining_paused_seconds: null,
+    current_session_id: sessionId
+  });
+
+  await cacheService.refreshCache();
+  await timerService.broadcastPCs();
+
+  console.log(`[ExtendForAvailable] ${pc.code} diaktifkan untuk ${cleanUser} +${addMin} menit`);
+  return { success: true, message: `${cleanUser} dapat +${addMin} menit. Sesi dimulai.` };
 }
 
 /**
  * Kurangi waktu
  */
 async function reduceTime(pcId, reduceMinutes, reason) {
-  const redMin = Number(reduceMinutes) || 0;
-  const redSec = redMin * 60;
+  console.log('=== REDUCE TIME SERVICE ===');
+  console.log('pcId:', pcId, 'reduceMinutes:', reduceMinutes, 'reason:', reason);
+
   const pc = await pcModel.getPCById(pcId);
   if (!pc) throw new Error('PC tidak ditemukan');
 
-  if (pc.status === 'in-use') {
+  if (pc.status !== 'in-use' && pc.status !== 'paused') {
+    throw new Error('PC tidak sedang dipakai atau dijeda');
+  }
+
+  const reduceMin = Number(reduceMinutes) || 0;
+  if (reduceMin < 1) throw new Error('Jumlah menit tidak valid');
+
+  const reduceSec = reduceMin * 60;
+
+  if (pc.status === 'paused') {
+    const currentPausedSec = Number(pc.remaining_paused_seconds) || 0;
+    const newPausedSec = Math.max(0, currentPausedSec - reduceSec);
+
+    if (newPausedSec <= 0) {
+      await endSession(pcId);
+      console.log(`[ReduceTime] ${pc.code} -${reduceMin} menit → WAKTU HABIS (paused), auto-end`);
+      return { success: true, message: 'Waktu habis saat jeda, sesi diakhiri otomatis' };
+    }
+
     await pcModel.updatePC(pcId, {
-      current_duration_minutes: Math.max(1, (Number(pc.current_duration_minutes) || 0) - redMin),
-      current_duration_seconds: Math.max(60, (Number(pc.current_duration_seconds) || 0) - redSec)
+      remaining_paused_seconds: newPausedSec,
+      current_duration_minutes: Math.max(0, (Number(pc.current_duration_minutes) || 0) - reduceMin),
+      current_duration_seconds: Math.max(0, (Number(pc.current_duration_seconds) || 0) - reduceSec)
     });
-  } else if (pc.status === 'paused') {
-    await pcModel.updatePC(pcId, {
-      remaining_paused_seconds: Math.max(0, (Number(pc.remaining_paused_seconds) || 0) - redSec)
-    });
+
   } else {
-    throw new Error('PC tidak sedang aktif/di-pause');
+    const currentDurSec = Number(pc.current_duration_seconds) || 0;
+    const newDurSec = Math.max(0, currentDurSec - reduceSec);
+
+    if (newDurSec <= 0) {
+      await endSession(pcId);
+      console.log(`[ReduceTime] ${pc.code} -${reduceMin} menit → WAKTU HABIS, auto-end`);
+      return { success: true, message: 'Waktu habis, sesi diakhiri otomatis' };
+    }
+
+    await pcModel.updatePC(pcId, {
+      current_duration_minutes: Math.max(0, (Number(pc.current_duration_minutes) || 0) - reduceMin),
+      current_duration_seconds: newDurSec
+    });
   }
 
   await timerService.broadcastPCs();
-  return { success: true, message: `-${redMin} menit (${reason || '-'})` };
+  console.log(`[ReduceTime] ${pc.code} -${reduceMin} menit${reason ? ` (${reason})` : ''}`);
+  return { success: true, message: `-${reduceMin} menit berhasil` };
 }
 
 /**
@@ -209,18 +286,30 @@ async function moveSession(fromPcId, toPcId) {
   const toPc = await pcModel.getPCById(toPcId);
 
   if (!fromPc || !toPc) throw new Error('PC asal/tujuan tidak ditemukan');
-  if (fromPc.status !== 'in-use' && fromPc.status !== 'paused') throw new Error('PC asal tidak aktif');
-  if (toPc.status !== 'available') throw new Error('PC tujuan tidak kosong');
+  if (fromPc.status !== 'in-use' && fromPc.status !== 'paused') {
+    throw new Error('PC asal tidak aktif');
+  }
+  if (toPc.status !== 'available') {
+    throw new Error('PC tujuan tidak kosong');
+  }
 
   const remainingSeconds = calculateRemainingSeconds(fromPc);
+  if (remainingSeconds <= 0) {
+    await endSession(fromPcId);
+    throw new Error('Sesi di PC asal sudah habis, tidak bisa dipindah');
+  }
+
   const remainingMinutes = Math.ceil(remainingSeconds / 60);
+  const now = new Date();
+
+  console.log(`[MoveSession] ${fromPc.code} → ${toPc.code} | sisa: ${remainingSeconds}s`);
 
   if (fromPc.status === 'in-use') {
     await pcModel.updatePC(toPcId, {
       status: 'in-use',
-      username: fromPc.user_name,
+      username: fromPc.username,
       purpose: fromPc.purpose,
-      current_start_time: new Date(),
+      current_start_time: now,
       current_duration_minutes: remainingMinutes,
       current_duration_seconds: remainingSeconds,
       remaining_paused_seconds: null,
@@ -229,7 +318,7 @@ async function moveSession(fromPcId, toPcId) {
   } else {
     await pcModel.updatePC(toPcId, {
       status: 'paused',
-      username: fromPc.user_name,
+      username: fromPc.username,
       purpose: fromPc.purpose,
       current_start_time: null,
       current_duration_minutes: remainingMinutes,
@@ -250,8 +339,13 @@ async function moveSession(fromPcId, toPcId) {
     current_session_id: null
   });
 
+  await cacheService.refreshCache();
   await timerService.broadcastPCs();
-  return { success: true, message: `Pindah dari ${fromPc.code} ke ${toPc.code}` };
+
+  return {
+    success: true,
+    message: `Pindah dari ${fromPc.code} ke ${toPc.code} (sisa ${remainingMinutes} menit)`
+  };
 }
 
 module.exports = {
@@ -260,6 +354,7 @@ module.exports = {
   pauseSession,
   resumeSession,
   extendTime,
+  extendTimeForAvailable,
   reduceTime,
   moveSession,
   calculateRemainingSeconds
