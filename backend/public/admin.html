@@ -564,7 +564,7 @@
     <div class="toolbar">
       <div class="search-box">
         <i class="bi bi-search"></i>
-        <input type="text" id="searchInput" placeholder="Cari kode PC atau nama user..." oninput="applyFilter()">
+        <input type="text" id="searchInput" placeholder="Cari kode PC atau nama user..." oninput="currentPage = 1; applyFilter()">
       </div>
       <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Semua</button>
       <button class="filter-btn" data-filter="available" onclick="setFilter('available', this)">Kosong</button>
@@ -896,12 +896,14 @@
       }
       return true;
     });
-    currentPage = 1;
+    // NOTE: currentPage TIDAK di-reset di sini, biar Socket.IO update tiap detik
+    // tidak mengembalikan user ke halaman 1. Reset dilakukan di setFilter() dan search.
     renderGrid();
   }
 
   function setFilter(filter, btn) {
     currentFilter = filter;
+    currentPage = 1;                    // reset ke halaman 1 saat ganti filter
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     applyFilter();
@@ -927,6 +929,10 @@
       document.getElementById('paginationBar').innerHTML = '';
       return;
     }
+
+    const totalPages = Math.ceil(total / PER_PAGE);
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
 
     const startIdx = (currentPage - 1) * PER_PAGE;
     const pageItems = filteredPCs.slice(startIdx, startIdx + PER_PAGE);
@@ -1379,7 +1385,7 @@
     const addMinutes = parseInt(document.getElementById('resumeAvailMinutes').value);
 
     if (!userName) return alert('Nama wajib diisi');
-    if (!addMinutes || addMin < 1) return alert('Menit tidak valid');
+    if (!addMinutes || addMinutes < 1) return alert('Menit tidak valid');   // ← typo addMin → addMinutes sudah dibetulkan
 
     socket.emit('extend_time_for_available', { pcId, addMinutes, userName }, (res) => {
       if (res?.error) alert('Gagal: ' + res.error);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Billing Perpus — PC User</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💻</text></svg>" id="favicon">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'></text></svg>" id="favicon">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 
@@ -185,6 +185,7 @@
   .force-modal.danger { border-color: var(--accent-red); box-shadow: 0 0 60px rgba(239, 68, 68, 0.4); }
   .force-modal.warn { border-color: var(--accent-gold); box-shadow: 0 0 60px rgba(245, 158, 11, 0.4); }
   .force-modal.info { border-color: var(--accent-violet); box-shadow: 0 0 60px rgba(139, 92, 246, 0.4); }
+  .force-modal.success { border-color: var(--accent-green); box-shadow: 0 0 60px rgba(34, 197, 94, 0.4); }
 
   .force-modal .modal-icon {
     width: 70px; height: 70px; border-radius: 50%;
@@ -198,6 +199,7 @@
   .force-modal.danger .modal-icon { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
   .force-modal.warn .modal-icon { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
   .force-modal.info .modal-icon { background: rgba(139, 92, 246, 0.15); color: var(--accent-violet); }
+  .force-modal.success .modal-icon { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
 
   @keyframes pulse {
     0%, 100% { transform: scale(1); }
@@ -216,6 +218,7 @@
     color: var(--text-secondary);
     line-height: 1.5;
     margin-bottom: 24px;
+    white-space: pre-line;
   }
   .force-modal .modal-btn {
     background: var(--accent-green);
@@ -659,14 +662,78 @@
 
   function myPC() { return allPCs.find(p => p.code === myCode); }
 
+  // ================= NOTIFIKASI DARI ADMIN =================
+
+  // Chat dari admin (SUDAH ADA sebelumnya)
   socket.on('receive_admin_chat', data => {
     if (!data) return;
     const pc = myPC();
     if (!pc || String(data.pcId) !== String(pc.id)) return;
     triggerNotification({
-      variant: 'danger',
+      variant: 'info',
       title: '💬 PESAN DARI PETUGAS',
       message: data.message || ''
+    });
+  });
+
+  // Admin menambah waktu
+  socket.on('receive_time_extended', data => {
+    if (!data) return;
+    const pc = myPC();
+    if (!pc || String(data.pcId) !== String(pc.id)) return;
+    triggerNotification({
+      variant: 'success',
+      title: '⏱️ WAKTU DITAMBAH',
+      message: `Petugas menambahkan ${data.addMinutes} menit ke sesi Anda.\nSisa waktu sekarang: ${data.formatted_time || '-'}`
+    });
+  });
+
+  // Admin mengurangi waktu
+  socket.on('receive_time_reduced', data => {
+    if (!data) return;
+    const pc = myPC();
+    if (!pc || String(data.pcId) !== String(pc.id)) return;
+    const reasonText = data.reason ? `\nAlasan: ${data.reason}` : '';
+    triggerNotification({
+      variant: 'warn',
+      title: '⚠️ WAKTU DIKURANGI',
+      message: `Petugas mengurangi ${data.reduceMinutes} menit dari sesi Anda.${reasonText}\nSisa waktu sekarang: ${data.formatted_time || '-'}`
+    });
+  });
+
+  // Admin pause sesi
+  socket.on('receive_paused', data => {
+    if (!data) return;
+    const pc = myPC();
+    if (!pc || String(data.pcId) !== String(pc.id)) return;
+    triggerNotification({
+      variant: 'warn',
+      title: '⏸️ SESI DIJEDA',
+      message: 'Sesi Anda dijeda oleh petugas. Saldo waktu tidak berkurang. Hubungi petugas untuk melanjutkan.'
+    });
+  });
+
+  // Admin resume sesi
+  socket.on('receive_resumed', data => {
+    if (!data) return;
+    const pc = myPC();
+    if (!pc || String(data.pcId) !== String(pc.id)) return;
+    triggerNotification({
+      variant: 'success',
+      title: '▶️ SESI DILANJUTKAN',
+      message: 'Sesi Anda dilanjutkan oleh petugas. Selamat menggunakan!'
+    });
+  });
+
+  // Admin menutup sesi
+  socket.on('receive_ended', data => {
+    if (!data) return;
+    const pc = myPC();
+    if (!pc || String(data.pcId) !== String(pc.id)) return;
+    triggerNotification({
+      variant: 'danger',
+      title: '🛑 SESI BERAKHIR',
+      message: 'Sesi Anda telah diakhiri oleh petugas.'
     });
   });
 
@@ -725,7 +792,6 @@
   function render() {
     if (!hasData) return renderLoading();
 
-    // Kalau tidak ada ?pc= di URL → error
     if (!myCode) {
       return renderError(
         'Konfigurasi PC Kosong',
@@ -741,7 +807,6 @@
       );
     }
 
-    // Lock screen logic
     if (pc.status === 'in-use' || pc.status === 'paused') {
       if (lockScreenActive) hideBillingScreen();
     } else if (pc.status === 'available' || pc.status === 'maintenance') {

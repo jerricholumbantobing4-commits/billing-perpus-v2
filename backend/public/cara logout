@@ -10,3 +10,5 @@ setup kiosk (final)
 2. Ctrl + Shift + Esc  ← buka Task Manager, kill Chrome
    ↓ kalau gagal
 3. Ctrl + Alt + Del    ← Sign out atau Restart
+
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk "http://192.168.5.23:3000/user?pc=PC-01" --no-first-run --disable-session-crashed-bubble

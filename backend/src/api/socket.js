@@ -18,6 +18,8 @@ function setupSocket(io) {
     try {
       await sessionService.endSession(pcId);
       console.log(`[AutoEnd] Sesi PC ID ${pcId} diakhiri otomatis (waktu habis)`);
+      // ✅ TAMBAHAN: kirim notif ke PC user bahwa waktu habis
+      io.emit('receive_ended', { pcId, reason: 'timeout' });
     } catch (err) {
       console.error('[AutoEnd] Error:', err.message);
     }
@@ -83,6 +85,13 @@ function setupSocket(io) {
       try {
         const result = await sessionService.startSession(data);
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif sesi dimulai ke PC user
+        io.emit('receive_started', {
+          pcId: data.pcId,
+          userName: data.userName,
+          durationMinutes: data.durationMinutes
+        });
       } catch (err) {
         console.error('[Socket] start_session error:', err.message);
         if (callback) callback({ error: err.message });
@@ -93,6 +102,9 @@ function setupSocket(io) {
       try {
         const result = await sessionService.endSession(data.pcId);
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif sesi berakhir ke PC user
+        io.emit('receive_ended', { pcId: data.pcId, reason: 'manual' });
       } catch (err) {
         if (callback) callback({ error: err.message });
       }
@@ -107,6 +119,9 @@ function setupSocket(io) {
         const result = await sessionService.pauseSession(data.pcId);
         console.log('Result:', JSON.stringify(result));
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif sesi dijeda ke PC user
+        io.emit('receive_paused', { pcId: data.pcId });
       } catch (err) {
         console.error('=== PAUSE ERROR ===');
         console.error('Full error:', err);
@@ -122,6 +137,9 @@ function setupSocket(io) {
       try {
         const result = await sessionService.resumeSession(data.pcId);
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif sesi dilanjutkan ke PC user
+        io.emit('receive_resumed', { pcId: data.pcId });
       } catch (err) {
         if (callback) callback({ error: err.message });
       }
@@ -131,6 +149,22 @@ function setupSocket(io) {
       try {
         const result = await sessionService.extendTime(data.pcId, data.addMinutes);
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif waktu ditambah ke PC user
+        try {
+          const pcs = await pcModel.getAllPCs();
+          const pc = pcs.find(p => String(p.id) === String(data.pcId));
+          if (pc) {
+            const remaining = timerService.calculateRemaining(pc);
+            io.emit('receive_time_extended', {
+              pcId: data.pcId,
+              addMinutes: data.addMinutes,
+              formatted_time: formatHHMMSS(remaining)
+            });
+          }
+        } catch (e) {
+          console.error('[Notif] extend_time emit error:', e.message);
+        }
       } catch (err) {
         if (callback) callback({ error: err.message });
       }
@@ -144,6 +178,22 @@ function setupSocket(io) {
           data.userName
         );
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif waktu ditambah (untuk PC yang tadinya kosong)
+        try {
+          const pcs = await pcModel.getAllPCs();
+          const pc = pcs.find(p => String(p.id) === String(data.pcId));
+          if (pc) {
+            const remaining = timerService.calculateRemaining(pc);
+            io.emit('receive_time_extended', {
+              pcId: data.pcId,
+              addMinutes: data.addMinutes,
+              formatted_time: formatHHMMSS(remaining)
+            });
+          }
+        } catch (e) {
+          console.error('[Notif] extend_time_for_available emit error:', e.message);
+        }
       } catch (err) {
         if (callback) callback({ error: err.message });
       }
@@ -157,6 +207,23 @@ function setupSocket(io) {
         const result = await sessionService.reduceTime(data.pcId, data.reduceMinutes, data.reason);
         console.log('Result:', JSON.stringify(result));
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif waktu dikurangi ke PC user
+        try {
+          const pcs = await pcModel.getAllPCs();
+          const pc = pcs.find(p => String(p.id) === String(data.pcId));
+          if (pc) {
+            const remaining = timerService.calculateRemaining(pc);
+            io.emit('receive_time_reduced', {
+              pcId: data.pcId,
+              reduceMinutes: data.reduceMinutes,
+              reason: data.reason || '',
+              formatted_time: formatHHMMSS(remaining)
+            });
+          }
+        } catch (e) {
+          console.error('[Notif] reduce_time emit error:', e.message);
+        }
       } catch (err) {
         console.error('=== REDUCE ERROR ===');
         console.error('Full error:', err);
@@ -174,6 +241,12 @@ function setupSocket(io) {
         const result = await sessionService.moveSession(data.fromPcId, data.toPcId);
         console.log('Result:', JSON.stringify(result));
         if (callback) callback(result);
+
+        // ✅ TAMBAHAN: notif sesi dipindah
+        io.emit('receive_moved', {
+          fromPcId: data.fromPcId,
+          toPcId: data.toPcId
+        });
       } catch (err) {
         console.error('=== MOVE ERROR ===');
         console.error('Full error:', err);
